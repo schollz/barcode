@@ -43,11 +43,12 @@ function init()
     voice[i].lfo_period={0,0,0,0,0}
     voice[i].lfo={1,1,1,1,1}
   end
-  voice[1].level=1
-  voice[2].level=0.2
+  voice[1].level=0.5
+  voice[2].level=0.5
   voice[3].level=0.2
-  voice[4].level=0.02
+  voice[4].level=0.2
   voice[5].level=0.02
+  voice[6].level=0.02
   voice[1].pan=0.2
   voice[2].pan=-0.2
   voice[3].pan=0.4
@@ -97,7 +98,8 @@ function init()
 end
 
 function update_lfo()
-  -- update lfo counter
+  if state_recording==1 then do return end
+-- update lfo counter
   state_lfo_time=state_lfo_time+const_lfo_inc
   if state_lfo_time>60 then
     state_lfo_time=0
@@ -120,7 +122,7 @@ function update_lfo()
         softcut.pan(i,voice[i].pan2)
       elseif j==3 then
         voice[i].rate2=math.floor(util.clamp(voice[i].rate*math.abs(voice[i].lfo[j]),1,11))
-        softcut.pan(i,rates[voie[i].rate2])
+        softcut.rate(i,rates[voie[i].rate2])
       elseif j==4 then
         voice[i].le2=1+voice[i].le*math.abs(voice[i].lfo[j])
         softcut.loop_end(i,voice[i].le2)
@@ -133,42 +135,42 @@ function update_lfo()
   redraw()
 end
 
-function enc(n,d)
-  if n==1 then
-    if shift==0 then
-      -- E1: start loop
-      voice[state_v].ls=util.clamp(voice[state_v].ls+d/100,0,voice[state_v].le)
-      softcut.loop_start(state_v,1+voice[state_v].ls)
-    else
-      -- K1+E1: end loop
-      voice[state_v].le=util.clamp(voice[state_v].le+d/100,voice[state_v].ls,maxbuffer)
-      softcut.loop_end(state_v,1+voice[state_v].le)
-    end
-  elseif n==2 then
-    if shift==0 then
-      -- E2: level
-      voice[state_v].level=util.clamp(voice[state_v].level+d/100,0,1)
-    else
-      -- K1+E1: lfo period
-      -- voice[state_v].lfo=util.clamp(voice[state_v].lfo+d/100,0,300)
-    end
-  elseif n==3 then
-    if shift==0 then
-      -- E3: pitch
-      voice[state_v].rate=voice[state_v].rate+d
-      if voice[state_v].rate>11 then
-        voice[state_v].rate=11
-      elseif voice[state_v].rate<1 then
-        voice[state_v].rate=1
-      end
-      softcut.rate(state_v,rates[voice[state_v].rate])
-    else
-      -- K1+E3: pan
-      voice[state_v].pan=util.clamp(voice[state_v].pan+d/100,-1,1)
-    end
-  end
-  redraw()
-end
+-- function enc(n,d)
+--   if n==1 then
+--     if shift==0 then
+--       -- E1: start loop
+--       voice[state_v].ls=util.clamp(voice[state_v].ls+d/100,0,voice[state_v].le)
+--       softcut.loop_start(state_v,1+voice[state_v].ls)
+--     else
+--       -- K1+E1: end loop
+--       voice[state_v].le=util.clamp(voice[state_v].le+d/100,voice[state_v].ls,maxbuffer)
+--       softcut.loop_end(state_v,1+voice[state_v].le)
+--     end
+--   elseif n==2 then
+--     if shift==0 then
+--       -- E2: level
+--       voice[state_v].level=util.clamp(voice[state_v].level+d/100,0,1)
+--     else
+--       -- K1+E1: lfo period
+--       -- voice[state_v].lfo=util.clamp(voice[state_v].lfo+d/100,0,300)
+--     end
+--   elseif n==3 then
+--     if shift==0 then
+--       -- E3: pitch
+--       voice[state_v].rate=voice[state_v].rate+d
+--       if voice[state_v].rate>11 then
+--         voice[state_v].rate=11
+--       elseif voice[state_v].rate<1 then
+--         voice[state_v].rate=1
+--       end
+--       softcut.rate(state_v,rates[voice[state_v].rate])
+--     else
+--       -- K1+E3: pan
+--       voice[state_v].pan=util.clamp(voice[state_v].pan+d/100,-1,1)
+--     end
+--   end
+--   redraw()
+-- end
 
 local function update_buffer()
   for i=1,6 do
@@ -179,25 +181,6 @@ local function update_buffer()
   state_lfo_time=0
 end
 
-local function start_stop_recording()
-  if state_recording==0 then
-    -- reset to set levels
-    for i=1,6 do
-      softcut.level(i,voice[i].level)
-    end
-    softcut.rate(1,voice[1].rate)
-  else
-    -- turn off all voices, except first
-    -- change rate to 1
-    for i=2,6 do
-      softcut.level(i,0)
-    end
-    softcut.rate(1,1)
-    softcut.position(1,1)
-  end
-  softcut.rec(1,state_recording)
-end
-
 function key(n,z)
   if shift==1 and (n==2 or n==3) and z==1 then
     -- K1+K2: toggle recording into buffer 1
@@ -205,7 +188,16 @@ function key(n,z)
     state_buffer=n-1
     update_buffer()
     state_recording=1-state_recording
-    start_stop_recording()
+    if state_recording==1 then
+      -- turn off all voices, except first
+      -- change rate to 1
+      for i=2,6 do
+        softcut.level(i,0)
+      end
+      softcut.rate(1,1)
+      softcut.position(1,1)
+    end
+    softcut.rec(1,state_recording)
   elseif n==1 and z==1 then
     -- K1: shift toggle
     shift=1-shift
@@ -252,7 +244,7 @@ function redraw()
   screen.text("hexaphonic v0.1")
   if state_recording==1 then
     screen.move(110,1)
-    screen.text("rec")
+    screen.text(string.format("rec %d",state_buffer))
   end
   local p=8
   for i=1,6 do
