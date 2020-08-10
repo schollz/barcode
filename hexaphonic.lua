@@ -30,11 +30,18 @@ rates={-4,-2,-1,-0.5,-.25,0,0.25,0.5,1,2,4}
 
 const_lfo_inc=0.25
 maxbuffer=15
+range_level={0,1}
+range_pan={-1,1}
+range_rate={1,11}
+range_ls={0,15}
+range_le={0,15}
 
 function init()
   for i=1,6 do
     -- TODO: try making lfo_offset=math.random(0,60)
-    voice[i]={level=0,pan=0,rate=9,ls=0,le=3,lfo=0,lfo_offset=0,buffer=1}
+    voice[i]={level=0,level2=0,pan=0,pan2=0,rate=9,rate2=9,ls=0,ls2=0,le=3,le2=3,buffer=1}
+    voice[i].lfo_period={0,0,0,0,0}
+    voice[i].lfo={1,1,1,1,1}
   end
   voice[1].level=1
   voice[2].level=0.2
@@ -97,10 +104,33 @@ function update_lfo()
   end
   -- update level modulated by lfos
   for i=1,6 do
-    if (voice[i].lfo==0 or voice[i].level==0) then goto continue end
-    softcut.level(i,voice[i].level*math.abs(math.sin(2*math.pi*state_lfo_time/voice[i].lfo+voice[i].lfo_offset)))
-    ::continue::
+    local loop_end=15
+    for j=1,5 do
+      if (voice[i].lfo_period[j]==0) then
+        voice[i].lfo[j]=1
+      else
+        -- TODO: add offset?
+        voice[i].lfo[j]=math.sin(2*math.pi*state_lfo_time/voice[i].lfo_period[j])
+      end
+      if j==1 then
+        voice[i].level2=voice[i].level*math.abs(voice[i].lfo[j])
+        softcut.level(i,voice[i].level2)
+      elseif j==2 then
+        voice[i].pan2=voice[i].pan*voice[i].lfo[j]
+        softcut.pan(i,voice[i].pan2)
+      elseif j==3 then
+        voice[i].rate2=math.floor(util.clamp(voice[i].rate*math.abs(voice[i].lfo[j]),1,11))
+        softcut.pan(i,rates[voie[i].rate2])
+      elseif j==4 then
+        voice[i].le2=1+voice[i].le*math.abs(voice[i].lfo[j])
+        softcut.loop_end(i,voice[i].le2)
+      elseif j==5 then
+        voice[i].se2=util.clamp(1+voice[i].ls*math.abs(voice[i].lfo[j]),1,voice[i].le2)
+        softcut.loop_start(i,voice[i].se2)
+      end
+    end
   end
+  redraw()
 end
 
 function enc(n,d)
@@ -118,10 +148,9 @@ function enc(n,d)
     if shift==0 then
       -- E2: level
       voice[state_v].level=util.clamp(voice[state_v].level+d/100,0,1)
-      softcut.level(state_v,voice[state_v].level)
     else
       -- K1+E1: lfo period
-      voice[state_v].lfo=util.clamp(voice[state_v].lfo+d/100,0,300)
+      -- voice[state_v].lfo=util.clamp(voice[state_v].lfo+d/100,0,300)
     end
   elseif n==3 then
     if shift==0 then
@@ -136,7 +165,6 @@ function enc(n,d)
     else
       -- K1+E3: pan
       voice[state_v].pan=util.clamp(voice[state_v].pan+d/100,-1,1)
-      softcut.pan(state_v,voice[state_v].pan)
     end
   end
   redraw()
@@ -202,38 +230,86 @@ function key(n,z)
   redraw()
 end
 
+local function horziontal_line(value)
+  if value<0 then
+    screen.level(1)
+    screen.line_rel(120*(1-math.abs(value)),0)
+    screen.level(7)
+    screen.line_rel(120*math.abs(value),0)
+  else
+    screen.level(7)
+    screen.line_rel(120*math.abs(value),0)
+    screen.level(1)
+    screen.line_rel(120*(1-math.abs(value)),0)
+  end
+end
+
 function redraw()
   screen.clear()
+  -- esoteric display
   screen.level(7)
-  screen.move(10,10)
+  screen.move(1,1)
   screen.text("hexaphonic v0.1")
   if state_recording==1 then
-    screen.move(110,10)
+    screen.move(110,1)
     screen.text("rec")
   end
-  screen.move(10,20)
-  screen.text("voice "..state_v)
+  local p=8
+  for i=1,6 do
+    p=p+2
+    screen.move(p,8)
+    horziontal_line(voice[i].level2)
+    p=p+1
+    screen.move(p,8)
+    horziontal_line(voice[i].pan2)
+    p=p+1
+    screen.move(p,8)
+    horziontal_line(rates[voice[i].rate2]/4)
+    p=p+1
+    screen.move(p,8)
+    horziontal_line(voice[i].lfo2/300.0)
+    p=p+1
+    screen.move(p,8)
+    screen.level(1)
+    screen.line_rel(120*(voices[state_v].ls2),0)
+    screen.level(7)
+    screen.line_rel(120*(voices[state_v].le2-voices[state_v].ls2),0)
+    screen.level(1)
+    screen.line_rel(120*(15-voices[state_v].le2),0)
+    p=p+1
+  end
+  -- normal display
+  -- screen.level(7)
+  -- screen.move(10,10)
+  -- screen.text("hexaphonic v0.1")
+  -- if state_recording==1 then
+  --   screen.move(110,10)
+  --   screen.text("rec")
+  -- end
+  -- screen.move(10,20)
+  -- screen.text("voice "..state_v)
   
-  screen.level((1-shift)*6+1)
-  screen.move(10,30)
-  screen.text(string.format("start: %.2f",voice[state_v].ls))
-  screen.level(shift*6+1)
-  screen.move(70,30)
-  screen.text(string.format("end: %.2f",voice[state_v].le))
+  -- screen.level((1-shift)*6+1)
+  -- screen.move(10,30)
+  -- screen.text(string.format("start: %.2f",voice[state_v].ls))
+  -- screen.level(shift*6+1)
+  -- screen.move(70,30)
+  -- screen.text(string.format("end: %.2f",voice[state_v].le))
   
-  screen.level((1-shift)*6+1)
-  screen.move(10,40)
-  screen.text(string.format("level:  %.2f",voice[state_v].level))
-  screen.level(shift*6+1)
-  screen.move(70,40)
-  screen.text(string.format("lfo: %.2f",voice[state_v].lfo))
+  -- screen.level((1-shift)*6+1)
+  -- screen.move(10,40)
+  -- screen.text(string.format("level:  %.2f",voice[state_v].level))
+  -- screen.level(shift*6+1)
+  -- screen.move(70,40)
+  -- screen.text(string.format("lfo: %.2f",voice[state_v].lfo))
   
-  screen.level((1-shift)*6+1)
-  screen.move(10,50)
-  screen.text(string.format("rate:  %.2f",rates[voice[state_v].rate]))
-  screen.level(shift*6+1)
-  screen.move(70,50)
-  screen.text(string.format("pan: %.2f",voice[state_v].pan))
+  -- screen.level((1-shift)*6+1)
+  -- screen.move(10,50)
+  -- screen.text(string.format("rate:  %.2f",rates[voice[state_v].rate]))
+  -- screen.level(shift*6+1)
+  -- screen.move(70,50)
+  -- screen.text(string.format("pan: %.2f",voice[state_v].pan))
   
   screen.update()
 end
+
