@@ -147,6 +147,8 @@ local function update_buffer()
     softcut.buffer(i,state_buffer)
     softcut.position(i,1)
   end
+  -- reset lfo
+  state_lfo_time=0
 end
 
 local function start_stop_recording()
@@ -233,15 +235,5 @@ function redraw()
   screen.move(70,50)
   screen.text(string.format("pan: %.2f",voice[state_v].pan))
   
-  -- screen.move(118,30)
-  -- screen.text_right(string.format("%.2f",rate))
-  -- screen.move(10,40)
-  -- screen.text("rec: ")
-  -- screen.move(118,40)
-  -- screen.text_right(string.format("%.2f",rec))
-  -- screen.move(10,50)
-  -- screen.text("pre: ")
-  -- screen.move(118,50)
-  -- screen.text_right(string.format("%.2f",pre))
   screen.update()
 end
