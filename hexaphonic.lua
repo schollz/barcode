@@ -37,11 +37,23 @@ function init()
     voice[i]={level=0,pan=0,rate=9,ls=0,le=3,lfo=0,lfo_offset=0,buffer=1}
   end
   voice[1].level=1
-  voice[2].rate=2
-  voice[3].rate=3
-  voice[4].rate=8
-  voice[5].rate=10
-  voice[6].rate=11
+  voice[2].level=0.2
+  voice[3].level=0.2
+  voice[4].level=0.02
+  voice[5].level=0.02
+  voice[1].pan=0.2
+  voice[2].pan=-0.2
+  voice[3].pan=0.4
+  voice[4].pan=-0.4
+  voice[5].pan=0.6
+  voice[6].pan=-0.6
+  voice[1].rate=3
+  voice[2].rate=3
+  voice[3].rate=4
+  voice[4].rate=4
+  voice[5].rate=2
+  voice[6].rate=2
+  
   -- send audio input to softcut input
   audio.level_adc_cut(1)
   softcut.buffer_clear()
@@ -137,14 +149,33 @@ local function update_buffer()
   end
 end
 
+local function start_stop_recording()
+  if state_recording==0 then
+    -- reset to set levels
+    for i=1,6 do
+      softcut.level(i,voice[i].level)
+    end
+    softcut.rate(1,voice[1].rate)
+  else
+    -- turn off all voices, except first
+    -- change rate to 1
+    for i=2,6 do
+      softcut.level(i,0)
+    end
+    softcut.rate(1,1)
+    softcut.position(1,1)
+  end
+  softcut.rec(1,state_recording)
+end
+
 function key(n,z)
   if shift==1 and (n==2 or n==3) and z==1 then
     -- K1+K2: toggle recording into buffer 1
     -- K1+K3: toggle recording into buffer 2
-    state_recording=1-state_recording
     state_buffer=n-1
     update_buffer()
-    softcut.rec(1,state_recording)
+    state_recording=1-state_recording
+    start_stop_recording()
   elseif n==1 and z==1 then
     -- K1: shift toggle
     shift=1-shift
