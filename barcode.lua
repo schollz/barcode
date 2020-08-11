@@ -1,5 +1,7 @@
 -- barcode v0.1
--- 6 voice looper
+-- six-speed six-voice looper
+--
+-- llllllll.co/t/barcode
 --
 -- press K2/K3 to record
 -- press again to play
