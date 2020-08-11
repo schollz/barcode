@@ -6,7 +6,7 @@
 -- E1 changes total levels
 -- E2 dials through parameters
 -- E3 adjusts current parameter
--- K1+K2 freezes current lfos
+-- K1+K2 toggles freezing lfos
 
 state_recording=0
 state_v=1
