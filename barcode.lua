@@ -18,11 +18,12 @@ state_sticky=0
 state_lfo_freeze=0
 state_level=1.0
 state_parm=0
+state_recordingtime=0.0
+state_buffer_size={8,8} -- seconds in the buffer
 voice={}
 rates={0,0.125,0.25,0.5,1,1.5,2,4}
 
 const_lfo_inc=0.25 -- seconds between updates
-const_buffer_size=8 -- seconds in the buffer
 const_line_width=116
 const_num_rates=8
 
@@ -35,7 +36,7 @@ function init()
     voice[i].rate={set=0,adj=0,calc=4,lfo=1,lfo_offset=math.random(0,60),lfo_period=0}
     voice[i].sign={set=-1,adj=0,calc=0,lfo=1,lfo_offset=math.random(0,60),lfo_period=lfo_low_frequency()}
     voice[i].ls={set=0,adj=0,calc=0,lfo=1,lfo_offset=math.random(0,60),lfo_period=lfo_low_frequency()}
-    voice[i].le={set=const_buffer_size,adj=0,calc=0,lfo=1,lfo_offset=math.random(0,60),lfo_period=lfo_low_frequency()}
+    voice[i].le={set=state_buffer_size[state_buffer],adj=0,calc=0,lfo=1,lfo_offset=math.random(0,60),lfo_period=lfo_low_frequency()}
   end
   -- initialize voice 1 = standard
   -- intitialize voice 2-6 = decreasing in volume, increasing in pitch
@@ -103,6 +104,7 @@ end
 
 function update_lfo()
   if state_recording==1 then
+    state_recordingtime=state_recordingtime+const_lfo_inc
     do return end
   end
   
@@ -145,13 +147,13 @@ function update_lfo()
         softcut.rate(i,voice[i].sign.calc*rates[voice[i].rate.calc])
       elseif j==5 then
         if state_lfo_freeze==0 then
-          voice[i].le.lfo=calculate_lfo(voice[i].le.lfo_period,voice[i].le.lfo_offset)*const_buffer_size/2+const_buffer_size/2
+          voice[i].le.lfo=calculate_lfo(voice[i].le.lfo_period,voice[i].le.lfo_offset)*state_buffer_size[state_buffer]/2+state_buffer_size[state_buffer]/2
         end
-        voice[i].le.calc=util.clamp(voice[i].le.lfo+voice[i].le.adj,1,const_buffer_size)
+        voice[i].le.calc=util.clamp(voice[i].le.lfo+voice[i].le.adj,1,state_buffer_size[state_buffer])
         softcut.loop_end(i,1+voice[i].le.calc)
       elseif j==6 then
         if state_lfo_freeze==0 then
-          voice[i].ls.lfo=calculate_lfo(voice[i].ls.lfo_period,voice[i].ls.lfo_offset)*const_buffer_size/2+const_buffer_size/2
+          voice[i].ls.lfo=calculate_lfo(voice[i].ls.lfo_period,voice[i].ls.lfo_offset)*state_buffer_size[state_buffer]/2+state_buffer_size[state_buffer]/2
         end
         voice[i].ls.calc=util.clamp(voice[i].ls.lfo+voice[i].ls.adj,0,voice[i].le.calc-2)
         softcut.loop_start(i,1+voice[i].ls.calc)
@@ -206,8 +208,8 @@ function enc(n,d)
       end
       j=j+1
       if state_parm==j then
-        voice[i].ls.adj=util.clamp(voice[i].ls.adj-d/100,-const_buffer_size,0)
-        voice[i].le.adj=util.clamp(voice[i].le.adj+d/100,0,const_buffer_size)
+        voice[i].ls.adj=util.clamp(voice[i].ls.adj-d/100,-state_buffer_size[state_buffer],0)
+        voice[i].le.adj=util.clamp(voice[i].le.adj+d/100,0,state_buffer_size[state_buffer])
         print(string.format("start/end %d %.2f %.2f",i,voice[i].ls.adj,voice[i].le.adj))
         break
       end
@@ -247,7 +249,10 @@ function key(n,z)
       softcut.rate(1,1)
       softcut.position(1,1)
       softcut.loop_start(1,1)
-      softcut.loop_end(1,const_buffer_size+1)
+      softcut.loop_end(1,state_buffer_size[state_buffer]+1)
+      state_recordingtime=0.0
+    else
+      state_buffer_size[state_buffer]=state_recordingtime
     end
     softcut.rec(1,state_recording)
   end
@@ -281,8 +286,8 @@ function redraw()
   end
   screen.text("barcode v0.1 "..freezestring)
   if state_recording==1 then
-    screen.move(105,10)
-    screen.text(string.format("rec %d",state_buffer))
+    screen.move(100,10)
+    screen.text(string.format("rec%d %.2f",state_buffer,state_recordingtime))
   end
   local p=14
   screen.move(8,p)
@@ -304,8 +309,8 @@ function redraw()
     horziontal_line(voice[i].sign.calc*0.5,p)
     p=p+1 j=j+1
     draw_dot(j,p)
-    screen.move(8+util.clamp(const_line_width*(voice[i].ls.calc)/const_buffer_size,0,110),p)
-    horziontal_line(util.clamp((voice[i].le.calc-voice[i].ls.calc)/const_buffer_size,0,1))
+    screen.move(8+util.clamp(const_line_width*(voice[i].ls.calc)/state_buffer_size[state_buffer],0,110),p)
+    horziontal_line(util.clamp((voice[i].le.calc-voice[i].ls.calc)/state_buffer_size[state_buffer],0,1))
     p=p+3 j=j+1
   end
   screen.stroke()
