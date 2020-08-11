@@ -298,8 +298,14 @@ function redraw()
     draw_dot(j,p) screen.move(8,p)
     horziontal_line(voice[i].level.calc,p)
     p=p+1 j=j+1
-    draw_dot(j,p) screen.move(8,p)
-    horziontal_line(voice[i].pan.calc,p)
+    draw_dot(j,p)
+    if value<voice[i].pan.calc then
+      screen.move(8+round(const_line_width*0.5*(1-math.abs(voice[i].pan.calc))),p)
+      screen.line_rel(round(const_line_width*0.5*math.abs(voice[i].pan.calc)),0)
+    else
+      screen.move(8+const_line_width*0.5,p)
+      screen.line_rel(const_line_width*0.5*math.abs(voice[i].pan.calc),0)
+    end
     p=p+1 j=j+1
     draw_dot(j,p) screen.move(8,p)
     horziontal_line(rates[voice[i].rate.calc]/4,p)
