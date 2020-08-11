@@ -29,6 +29,7 @@ voice={}
 rates={-4,-2,-1,-0.5,-.25,0,0.25,0.5,1,2,4}
 
 const_lfo_inc=0.25
+const_line_width=116
 maxbuffer=15
 range_level={0,1}
 range_pan={-1,1}
@@ -38,17 +39,17 @@ range_le={0,15}
 
 function init()
   for i=1,6 do
-    -- TODO: try making lfo_offset=math.random(0,60)
-    voice[i]={level=0,level2=0,pan=0,pan2=0,rate=9,rate2=9,ls=0,ls2=0,le=3,le2=3,buffer=1}
-    voice[i].lfo_period={0,0,0,0,0}
-    voice[i].lfo={1,1,1,1,1}
+    voice[i]={level=0,level2=0,pan=0,pan2=0,rate=9,rate2=9,ls=math.random(0,6),ls2=0,le=math.random(6,15),le2=3,buffer=1,rate_sign=1}
+    voice[i].lfo_offset={math.random(0,60),math.random(0,60),math.random(0,60),math.random(0,60),math.random(0,60),math.random(0,60)}
+    voice[i].lfo_period={math.random(20,40),math.random(2,20),0,math.random(80,120),math.random(80,120),math.random(80,120)}
+    voice[i].lfo={1,1,1,1,1,1}
   end
   voice[1].level=0.5
   voice[2].level=0.5
-  voice[3].level=0.2
-  voice[4].level=0.2
-  voice[5].level=0.02
-  voice[6].level=0.02
+  voice[3].level=0.3
+  voice[4].level=0.3
+  voice[5].level=0.4
+  voice[6].level=0.1
   voice[1].pan=0.2
   voice[2].pan=-0.2
   voice[3].pan=0.4
@@ -59,7 +60,7 @@ function init()
   voice[2].rate=3
   voice[3].rate=4
   voice[4].rate=4
-  voice[5].rate=2
+  voice[5].rate=5
   voice[6].rate=2
   
   -- send audio input to softcut input
@@ -98,8 +99,11 @@ function init()
 end
 
 function update_lfo()
-  if state_recording==1 then do return end
--- update lfo counter
+  if state_recording==1 then
+    do return end
+  end
+  
+  -- update lfo counter
   state_lfo_time=state_lfo_time+const_lfo_inc
   if state_lfo_time>60 then
     state_lfo_time=0
@@ -107,12 +111,11 @@ function update_lfo()
   -- update level modulated by lfos
   for i=1,6 do
     local loop_end=15
-    for j=1,5 do
-      if (voice[i].lfo_period[j]==0) then
+    for j=1,6 do
+      if voice[i].lfo_period[j]==0 then
         voice[i].lfo[j]=1
       else
-        -- TODO: add offset?
-        voice[i].lfo[j]=math.sin(2*math.pi*state_lfo_time/voice[i].lfo_period[j])
+        voice[i].lfo[j]=math.sin(2*math.pi*state_lfo_time/voice[i].lfo_period[j]+voice[i].lfo_offset[j])
       end
       if j==1 then
         voice[i].level2=voice[i].level*math.abs(voice[i].lfo[j])
@@ -122,19 +125,25 @@ function update_lfo()
         softcut.pan(i,voice[i].pan2)
       elseif j==3 then
         voice[i].rate2=math.floor(util.clamp(voice[i].rate*math.abs(voice[i].lfo[j]),1,11))
-        softcut.rate(i,rates[voie[i].rate2])
       elseif j==4 then
-        voice[i].le2=1+voice[i].le*math.abs(voice[i].lfo[j])
-        softcut.loop_end(i,voice[i].le2)
+        voice[i].le2=util.clamp(voice[i].le*math.abs(voice[i].lfo[j]),8,15)
+        softcut.loop_end(i,1+voice[i].le2)
       elseif j==5 then
-        voice[i].se2=util.clamp(1+voice[i].ls*math.abs(voice[i].lfo[j]),1,voice[i].le2)
-        softcut.loop_start(i,voice[i].se2)
+        voice[i].ls2=util.clamp(voice[i].ls*math.abs(voice[i].lfo[j]),0,voice[i].le2)
+        softcut.loop_start(i,1+voice[i].ls2)
+      elseif j==6 then
+        voice[i].rate_sign=round(voice[i].lfo[j])
+        softcut.rate(i,rates[voice[i].rate2]*voice[i].rate_sign)
       end
     end
   end
   redraw()
 end
 
+function round(num)
+  if num>=0 then return math.floor(num+.5)
+  else return math.ceil(num-.5) end
+end
 -- function enc(n,d)
 --   if n==1 then
 --     if shift==0 then
@@ -175,7 +184,7 @@ end
 local function update_buffer()
   for i=1,6 do
     softcut.buffer(i,state_buffer)
-    softcut.position(i,1)
+    -- softcut.position(i,1)
   end
   -- reset lfo
   state_lfo_time=0
@@ -202,7 +211,7 @@ function key(n,z)
     -- K1: shift toggle
     shift=1-shift
   elseif (n==2 or n==3) and z==1 then
-    if shift23==1
+    if shift23==1 then
       -- K2+K3: toggle buffer that is being played
       state_buffer=3-state_buffer
       update_buffer()
@@ -222,60 +231,54 @@ function key(n,z)
   redraw()
 end
 
-local function horziontal_line(value)
+local function horziontal_line(value,p)
+  screen.level(7)
   if value<0 then
-    screen.level(1)
-    screen.line_rel(120*(1-math.abs(value)),0)
-    screen.level(7)
-    screen.line_rel(120*math.abs(value),0)
+    screen.move(const_line_width*(1-math.abs(value)),p)
   else
     screen.level(7)
-    screen.line_rel(120*math.abs(value),0)
-    screen.level(1)
-    screen.line_rel(120*(1-math.abs(value)),0)
   end
+  screen.line_rel(const_line_width*math.abs(value),0)
 end
 
 function redraw()
   screen.clear()
   -- esoteric display
   screen.level(7)
-  screen.move(1,1)
+  screen.move(1,10)
   screen.text("hexaphonic v0.1")
   if state_recording==1 then
-    screen.move(110,1)
+    screen.move(const_line_width,10)
     screen.text(string.format("rec %d",state_buffer))
   end
-  local p=8
+  local p=10
   for i=1,6 do
-    p=p+2
-    screen.move(p,8)
-    horziontal_line(voice[i].level2)
+    p=p+4
+    screen.move(8,p)
+    horziontal_line(voice[i].level2,p)
     p=p+1
-    screen.move(p,8)
-    horziontal_line(voice[i].pan2)
+    screen.move(8,p)
+    horziontal_line(voice[i].pan2,p)
     p=p+1
-    screen.move(p,8)
-    horziontal_line(rates[voice[i].rate2]/4)
+    screen.move(8,p)
+    horziontal_line(rates[voice[i].rate2]/4,p)
     p=p+1
-    screen.move(p,8)
-    horziontal_line(voice[i].lfo2/300.0)
+    -- rate sign
+    screen.move(8,p)
+    horziontal_line((voice[i].lfo[6]+1)/2,p)
     p=p+1
-    screen.move(p,8)
-    screen.level(1)
-    screen.line_rel(120*(voices[state_v].ls2),0)
     screen.level(7)
-    screen.line_rel(120*(voices[state_v].le2-voices[state_v].ls2),0)
-    screen.level(1)
-    screen.line_rel(120*(15-voices[state_v].le2),0)
+    screen.move(8+util.clamp(const_line_width*(voice[i].ls2)/15,0,110),p)
+    horziontal_line(util.clamp((voice[i].le2-voice[i].ls2)/15,0,1))
     p=p+1
   end
+  screen.stroke()
   -- normal display
   -- screen.level(7)
   -- screen.move(10,10)
   -- screen.text("hexaphonic v0.1")
   -- if state_recording==1 then
-  --   screen.move(110,10)
+  --   screen.move(const_line_width,10)
   --   screen.text("rec")
   -- end
   -- screen.move(10,20)
