@@ -9,7 +9,6 @@
 -- K1+K2 toggles freezing lfos
 
 state_recording=0
-state_v=1
 state_shift=0
 state_buffer=1
 state_lfo_time=0
@@ -17,24 +16,26 @@ state_lfo_freeze=0
 state_level=1.0
 state_parm=0
 voice={}
-rates={0,0.125,0.25,0.5,1,2,4}
+rates={0,0.125,0.25,0.5,1,1.5,2,4}
 
-const_lfo_inc=0.25
+const_lfo_inc=0.25 -- seconds between updates
+const_buffer_size=8 -- seconds in the buffer
 const_line_width=116
-const_num_rates=7
-const_buffer_size=8
+const_num_rates=8
 
 function init()
-  audio.comp_mix(1)
+  audio.comp_mix(1) -- turn on compressor
   for i=1,6 do
     voice[i]={}
-    voice[i].level={set=0,adj=0,calc=0,lfo=1,lfo_offset=math.random(0,60),lfo_period=math.random(30,60)}
-    voice[i].pan={set=0,adj=0,calc=0,lfo=1,lfo_offset=math.random(0,60),lfo_period=math.random(30,60)}
+    voice[i].level={set=0,adj=0,calc=0,lfo=1,lfo_offset=math.random(0,60),lfo_period=math.random(2,30)}
+    voice[i].pan={set=0,adj=0,calc=0,lfo=1,lfo_offset=math.random(0,60),lfo_period=math.random(1,5)}
     voice[i].rate={set=0,adj=0,calc=4,lfo=1,lfo_offset=math.random(0,60),lfo_period=0}
     voice[i].sign={set=-1,adj=0,calc=0,lfo=1,lfo_offset=math.random(0,60),lfo_period=math.random(30,60)}
     voice[i].ls={set=0,adj=0,calc=0,lfo=1,lfo_offset=math.random(0,60),lfo_period=math.random(30,60)}
     voice[i].le={set=const_buffer_size,adj=0,calc=0,lfo=1,lfo_offset=math.random(0,60),lfo_period=math.random(30,60)}
   end
+  -- initialize voice 1 = standard
+  -- intitialize voice 2-6 = decreasing in volume, increasing in pitch
   voice[1].level.set=1.0
   voice[2].level.set=0.8
   voice[3].level.set=0.6
@@ -48,11 +49,11 @@ function init()
   voice[5].pan.set=0.7
   voice[6].pan.set=0.8
   voice[1].rate.set=5
-  voice[2].rate.set=2
-  voice[3].rate.set=3
-  voice[4].rate.set=4
-  voice[5].rate.set=6
-  voice[6].rate.set=7
+  voice[2].rate.set=3
+  voice[3].rate.set=4
+  voice[4].rate.set=6
+  voice[5].rate.set=7
+  voice[6].rate.set=8
   for i=1,6 do
     voice[i].level.calc=voice[i].level.set
     voice[i].pan.calc=voice[i].pan.set
@@ -68,9 +69,9 @@ function init()
     softcut.loop(i,1)
     softcut.position(i,1)
     softcut.play(i,1)
-    softcut.rate_slew_time(i,0.5)
-    softcut.level_slew_time(i,0.5)
-    softcut.pan_slew_time(i,0.5)
+    softcut.rate_slew_time(i,1)
+    softcut.level_slew_time(i,1)
+    softcut.pan_slew_time(i,1)
   end
   -- set input rec level: input channel, voice, level
   softcut.level_input_cut(1,1,1.0)
@@ -133,7 +134,7 @@ function update_lfo()
           voice[i].sign.lfo=1+calculate_lfo(voice[i].sign.lfo_period,voice[i].sign.lfo_offset)
         end
         voice[i].sign.calc=util.clamp(voice[i].sign.set+voice[i].sign.lfo+voice[i].sign.adj,-1,1)
-        if voice[i].sign.calc<0 then
+        if voice[i].sign.calc<0.5 then -- 0.5 is to bias towards reverse
           voice[i].sign.calc=-1
         else
           voice[i].sign.calc=1
@@ -158,11 +159,6 @@ function update_lfo()
     end
   end
   redraw()
-end
-
-function round(num)
-  if num>=0 then return math.floor(num+.5)
-  else return math.ceil(num-.5) end
 end
 
 function enc(n,d)
@@ -304,3 +300,7 @@ function redraw()
   screen.update()
 end
 
+function round(num)
+  if num>=0 then return math.floor(num+.5)
+  else return math.ceil(num-.5) end
+end
