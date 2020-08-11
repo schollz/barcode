@@ -6,13 +6,14 @@
 -- E1 changes total levels
 -- E2 dials through parameters
 -- E3 adjusts current parameter
+-- K1+K2 freezes current lfos
 
-shift=0
-shift23=0
 state_recording=0
 state_v=1
+state_shift=0
 state_buffer=1
 state_lfo_time=0
+state_lfo_freeze=0
 state_level=1.0
 state_parm=0
 voice={}
@@ -110,19 +111,27 @@ function update_lfo()
   for i=1,6 do
     for j=1,6 do
       if j==1 then
-        voice[i].level.lfo=math.abs(calculate_lfo(voice[i].level.lfo_period,voice[i].level.lfo_offset))
+        if state_lfo_freeze==0 then
+          voice[i].level.lfo=math.abs(calculate_lfo(voice[i].level.lfo_period,voice[i].level.lfo_offset))
+        end
         voice[i].level.calc=util.clamp(voice[i].level.set*voice[i].level.lfo+voice[i].level.adj,0,1)
         softcut.level(i,state_level*voice[i].level.calc)
       elseif j==2 then
-        voice[i].pan.lfo=calculate_lfo(voice[i].pan.lfo_period,voice[i].pan.lfo_offset)
+        if state_lfo_freeze==0 then
+          voice[i].pan.lfo=calculate_lfo(voice[i].pan.lfo_period,voice[i].pan.lfo_offset)
+        end
         voice[i].pan.calc=util.clamp(voice[i].pan.set*voice[i].pan.lfo+voice[i].pan.adj,-1,1)
         softcut.pan(i,voice[i].pan.calc)
       elseif j==3 then
-        voice[i].rate.lfo=math.abs(calculate_lfo(voice[i].rate.lfo_period,voice[i].rate.lfo_offset))
+        if state_lfo_freeze==0 then
+          voice[i].rate.lfo=math.abs(calculate_lfo(voice[i].rate.lfo_period,voice[i].rate.lfo_offset))
+        end
         voice[i].rate.calc=util.clamp(round(voice[i].rate.set*voice[i].rate.lfo+voice[i].rate.adj),1,const_num_rates)
       elseif j==4 then
         -- sign lfo oscillates between 0 and 2, since initial sign is -1
-        voice[i].sign.lfo=1+calculate_lfo(voice[i].sign.lfo_period,voice[i].sign.lfo_offset)
+        if state_lfo_freeze==0 then
+          voice[i].sign.lfo=1+calculate_lfo(voice[i].sign.lfo_period,voice[i].sign.lfo_offset)
+        end
         voice[i].sign.calc=util.clamp(voice[i].sign.set+voice[i].sign.lfo+voice[i].sign.adj,-1,1)
         if voice[i].sign.calc<0 then
           voice[i].sign.calc=-1
@@ -131,11 +140,15 @@ function update_lfo()
         end
         softcut.rate(i,voice[i].sign.calc*rates[voice[i].rate.calc])
       elseif j==5 then
-        voice[i].le.lfo=calculate_lfo(voice[i].le.lfo_period,voice[i].le.lfo_offset)*const_buffer_size/2+const_buffer_size/2
+        if state_lfo_freeze==0 then
+          voice[i].le.lfo=calculate_lfo(voice[i].le.lfo_period,voice[i].le.lfo_offset)*const_buffer_size/2+const_buffer_size/2
+        end
         voice[i].le.calc=util.clamp(voice[i].le.lfo+voice[i].le.adj,1,const_buffer_size)
         softcut.loop_end(i,1+voice[i].le.calc)
       elseif j==6 then
-        voice[i].ls.lfo=calculate_lfo(voice[i].ls.lfo_period,voice[i].ls.lfo_offset)*const_buffer_size/2+const_buffer_size/2
+        if state_lfo_freeze==0 then
+          voice[i].ls.lfo=calculate_lfo(voice[i].ls.lfo_period,voice[i].ls.lfo_offset)*const_buffer_size/2+const_buffer_size/2
+        end
         voice[i].ls.calc=util.clamp(voice[i].ls.lfo+voice[i].ls.adj,0,voice[i].le.calc-2)
         softcut.loop_start(i,1+voice[i].ls.calc)
         if i==1 then
@@ -205,9 +218,14 @@ local function update_buffer()
 end
 
 function key(n,z)
-  if (n==2 or n==3) and z==1 then
-    -- K1+K2: toggle recording into buffer 1
-    -- K1+K3: toggle recording into buffer 2
+  if n==1 then
+    state_shift=z
+  elseif n==2 and state_shift==1 then
+    -- K1+K2: toggle freeze lfos
+    state_lfo_freeze=1-state_lfo_freeze
+  elseif (n==2 or n==3) and z==1 then
+    -- K2: toggle recording into buffer 1
+    -- K3: toggle recording into buffer 2
     state_buffer=n-1
     update_buffer()
     state_recording=1-state_recording
@@ -246,7 +264,14 @@ function redraw()
   screen.clear()
   -- esoteric display
   screen.move(1,10)
-  screen.text("barcode v0.1")
+  if state_shift==1 then
+    screen.move(2,11)
+  end
+  local freezestring=">"
+  if state_lfo_freeze==1 then
+    freezestring="-"
+  end
+  screen.text("barcode v0.1 "..freezestring)
   if state_recording==1 then
     screen.move(105,10)
     screen.text(string.format("rec %d",state_buffer))
