@@ -30,12 +30,12 @@ function init()
   audio.comp_mix(1) -- turn on compressor
   for i=1,6 do
     voice[i]={}
-    voice[i].level={set=0,adj=0,calc=0,lfo=1,lfo_offset=math.random(0,60),lfo_period=math.random(2,30)}
-    voice[i].pan={set=0,adj=0,calc=0,lfo=1,lfo_offset=math.random(0,60),lfo_period=math.random(1,5)}
+    voice[i].level={set=0,adj=0,calc=0,lfo=1,lfo_offset=math.random(0,60),lfo_period=lfo_med_frequency()}
+    voice[i].pan={set=0,adj=0,calc=0,lfo=1,lfo_offset=math.random(0,60),lfo_period=lfo_high_frequency()}
     voice[i].rate={set=0,adj=0,calc=4,lfo=1,lfo_offset=math.random(0,60),lfo_period=0}
-    voice[i].sign={set=-1,adj=0,calc=0,lfo=1,lfo_offset=math.random(0,60),lfo_period=math.random(30,60)}
-    voice[i].ls={set=0,adj=0,calc=0,lfo=1,lfo_offset=math.random(0,60),lfo_period=math.random(30,60)}
-    voice[i].le={set=const_buffer_size,adj=0,calc=0,lfo=1,lfo_offset=math.random(0,60),lfo_period=math.random(30,60)}
+    voice[i].sign={set=-1,adj=0,calc=0,lfo=1,lfo_offset=math.random(0,60),lfo_period=lfo_low_frequency()}
+    voice[i].ls={set=0,adj=0,calc=0,lfo=1,lfo_offset=math.random(0,60),lfo_period=lfo_low_frequency()}
+    voice[i].le={set=const_buffer_size,adj=0,calc=0,lfo=1,lfo_offset=math.random(0,60),lfo_period=lfo_low_frequency()}
   end
   -- initialize voice 1 = standard
   -- intitialize voice 2-6 = decreasing in volume, increasing in pitch
@@ -312,7 +312,21 @@ function redraw()
   screen.update()
 end
 
+-- utility functions
 function round(num)
   if num>=0 then return math.floor(num+.5)
   else return math.ceil(num-.5) end
+end
+
+-- define lfos, each returns a period in seconds
+function lfo_high_frequency()
+  return math.random(0.5,5) -- 200 mHz to 2 Hz
+end
+
+function lfo_med_frequency()
+  return math.random(2,30) -- 33 mHz to 500 mHz
+end
+
+function lfo_low_frequency()
+  return math.random(30,80) -- 12.5 mHz to 33 mHz
 end

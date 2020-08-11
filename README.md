@@ -1,4 +1,6 @@
-this is `barcode` - my second patch for [norns](https://monome.org/docs/norns/). `barcode` is a noisy looper. it turns loops into hexaphonic orchestrations.
+# barcode
+
+this is `barcode` - my second patch for [norns](https://monome.org/docs/norns/). `barcode` replays a buffer six times, at different levels & pans & rates & positions, modulated by lfos on every parameter.
 
 ## demo
 
@@ -13,7 +15,7 @@ press K2 (buffer 1) or K3 (buffer 2) to record a loop. press again to stop recor
 
 after recording finishes, the corresponding buffer will be played on six different voices. 
 
-each voice has six parameters: level, pan, rate, reverse, start point, and end point. each of these parameters is modulated by a randomly initialized lfo (that's 36 lfos!). 
+each voice has six parameters: level, pan, rate, reverse, start point, and end point. each of these parameters is modulated by a randomly initialized lfo (that's 36 lfos!). at this point, the lfos cannot be modulated except by changing the code.
 
 in the ui, the parameters of the voices are represented as six groups of five lines. each group of lines corresponds to one voice. the order of the five lines corresponds to the parameters:
 
