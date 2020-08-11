@@ -26,7 +26,7 @@ state_v=1
 state_buffer=1
 state_lfo_time=0
 voice={}
-rates={-4,-2,-1,-0.5,-.25,0,0.25,0.5,1,2,4}
+rates={0,0.25,0.5,0.66666,1,1.3333,2,4}
 
 const_lfo_inc=0.25
 const_line_width=116
@@ -39,29 +39,30 @@ range_le={0,15}
 
 function init()
   for i=1,6 do
-    voice[i]={level=0,level2=0,pan=0,pan2=0,rate=9,rate2=9,ls=math.random(0,6),ls2=0,le=math.random(6,15),le2=3,buffer=1,rate_sign=1}
+    voice[i]={level=0,level2=0,pan=0,pan2=0,rate=5,rate2=5,ls=math.random(0,6),ls2=0,le=math.random(6,15),le2=3,buffer=1,rate_sign=-1}
     voice[i].lfo_offset={math.random(0,60),math.random(0,60),math.random(0,60),math.random(0,60),math.random(0,60),math.random(0,60)}
-    voice[i].lfo_period={math.random(20,40),math.random(2,20),0,math.random(80,120),math.random(80,120),math.random(80,120)}
+    voice[i].lfo_period={math.random(20,40),math.random(2,20),0,math.random(80,120),math.random(80,120),0}
     voice[i].lfo={1,1,1,1,1,1}
   end
-  voice[1].level=0.5
-  voice[2].level=0.5
-  voice[3].level=0.3
-  voice[4].level=0.3
-  voice[5].level=0.4
-  voice[6].level=0.1
-  voice[1].pan=0.2
-  voice[2].pan=-0.2
-  voice[3].pan=0.4
-  voice[4].pan=-0.4
-  voice[5].pan=0.6
-  voice[6].pan=-0.6
-  voice[1].rate=3
-  voice[2].rate=3
-  voice[3].rate=4
-  voice[4].rate=4
-  voice[5].rate=5
-  voice[6].rate=2
+  voice[1].level=0.8
+  voice[2].level=1.0
+  voice[3].level=1.0
+  voice[4].level=0.7
+  voice[5].level=0.6
+  voice[6].level=0.5
+  voice[1].pan=0.3
+  voice[2].pan=0.4
+  voice[3].pan=0.5
+  voice[4].pan=0.6
+  voice[5].pan=0.7
+  voice[6].pan=0.8
+  -- ily libby
+  voice[1].rate2=5
+  voice[2].rate2=2
+  voice[3].rate2=3
+  voice[4].rate2=4
+  voice[5].rate2=6
+  voice[6].rate2=7
   
   -- send audio input to softcut input
   audio.level_adc_cut(1)
@@ -124,7 +125,7 @@ function update_lfo()
         voice[i].pan2=voice[i].pan*voice[i].lfo[j]
         softcut.pan(i,voice[i].pan2)
       elseif j==3 then
-        voice[i].rate2=math.floor(util.clamp(voice[i].rate*math.abs(voice[i].lfo[j]),1,11))
+        voice[i].rate2=math.floor(util.clamp(voice[i].rate*math.abs(voice[i].lfo[j]),1,8))
       elseif j==4 then
         voice[i].le2=util.clamp(voice[i].le*math.abs(voice[i].lfo[j]),8,15)
         softcut.loop_end(i,1+voice[i].le2)
@@ -132,8 +133,8 @@ function update_lfo()
         voice[i].ls2=util.clamp(voice[i].ls*math.abs(voice[i].lfo[j]),0,voice[i].le2)
         softcut.loop_start(i,1+voice[i].ls2)
       elseif j==6 then
-        voice[i].rate_sign=round(voice[i].lfo[j])
-        softcut.rate(i,rates[voice[i].rate2]*voice[i].rate_sign)
+        voice[i].rate_sign2=voice[i].rate_sign*round(voice[i].lfo[j])
+        softcut.rate(i,rates[voice[i].rate2]*voice[i].rate_sign2)
       end
     end
   end
@@ -203,8 +204,11 @@ function key(n,z)
       for i=2,6 do
         softcut.level(i,0)
       end
+      softcut.level(1,1)
       softcut.rate(1,1)
       softcut.position(1,1)
+      softcut.loop_start(1,voice[1].ls+1)
+      softcut.loop_end(1,voice[1].le+1)
     end
     softcut.rec(1,state_recording)
   elseif n==1 and z==1 then
