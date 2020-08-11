@@ -1,22 +1,11 @@
 -- barcode v0.1
 -- 6 voice looper
 --
---
---
---
---
---
---
--- k2/k3 steps through voices
--- k2+k3 toggles buffers
--- k1+k2 records buffer 1
--- k1+k3 records buffer 2
--- e1 adjusts start position
--- k1+e1 adjust end position
--- e2 adjusts level
--- k1+e2 adjusts lfo
--- e3 adjusts playback speed
--- k1+e3 adjusts pan
+-- press K2/K3 to record
+-- press again to play
+-- E1 changes total levels
+-- E2 dials through parameters
+-- E3 adjusts current parameter
 
 shift=0
 shift23=0
