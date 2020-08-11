@@ -25,6 +25,7 @@ state_recording=0
 state_v=1
 state_buffer=1
 state_lfo_time=0
+state_level=1.0
 voice={}
 rates={0,0.25,0.5,0.66666,1,1.3333,2,4}
 
@@ -41,15 +42,16 @@ function init()
   for i=1,6 do
     voice[i]={level=0,level2=0,pan=0,pan2=0,rate=5,rate2=5,ls=math.random(0,6),ls2=0,le=math.random(6,15),le2=3,buffer=1,rate_sign=-1}
     voice[i].lfo_offset={math.random(0,60),math.random(0,60),math.random(0,60),math.random(0,60),math.random(0,60),math.random(0,60)}
+    voice[i].lfo_period={0,0,0,0,0,0}
     voice[i].lfo_period={math.random(20,40),math.random(2,20),0,math.random(80,120),math.random(80,120),0}
     voice[i].lfo={1,1,1,1,1,1}
   end
-  voice[1].level=0.8
+  voice[1].level=0.9
   voice[2].level=1.0
   voice[3].level=1.0
-  voice[4].level=0.7
-  voice[5].level=0.6
-  voice[6].level=0.5
+  voice[4].level=0.6
+  voice[5].level=0.4
+  voice[6].level=0.2
   voice[1].pan=0.3
   voice[2].pan=0.4
   voice[3].pan=0.5
@@ -57,12 +59,12 @@ function init()
   voice[5].pan=0.7
   voice[6].pan=0.8
   -- ily libby
-  voice[1].rate2=5
-  voice[2].rate2=2
-  voice[3].rate2=3
-  voice[4].rate2=4
-  voice[5].rate2=6
-  voice[6].rate2=7
+  voice[1].rate=5
+  voice[2].rate=2
+  voice[3].rate=3
+  voice[4].rate=4
+  voice[5].rate=5
+  voice[6].rate=6
   
   -- send audio input to softcut input
   audio.level_adc_cut(1)
@@ -120,7 +122,7 @@ function update_lfo()
       end
       if j==1 then
         voice[i].level2=voice[i].level*math.abs(voice[i].lfo[j])
-        softcut.level(i,voice[i].level2)
+        softcut.level(i,state_level*voice[i].level2)
       elseif j==2 then
         voice[i].pan2=voice[i].pan*voice[i].lfo[j]
         softcut.pan(i,voice[i].pan2)
@@ -144,6 +146,12 @@ end
 function round(num)
   if num>=0 then return math.floor(num+.5)
   else return math.ceil(num-.5) end
+end
+
+function enc(n,d)
+  if n==1 then
+    state_level = util.clamp(state_level+d/100,0,1)
+  end
 end
 -- function enc(n,d)
 --   if n==1 then
@@ -192,7 +200,7 @@ local function update_buffer()
 end
 
 function key(n,z)
-  if shift==1 and (n==2 or n==3) and z==1 then
+  if (n==2 or n==3) and z==1 then
     -- K1+K2: toggle recording into buffer 1
     -- K1+K3: toggle recording into buffer 2
     state_buffer=n-1
@@ -211,26 +219,6 @@ function key(n,z)
       softcut.loop_end(1,voice[1].le+1)
     end
     softcut.rec(1,state_recording)
-  elseif n==1 and z==1 then
-    -- K1: shift toggle
-    shift=1-shift
-  elseif (n==2 or n==3) and z==1 then
-    if shift23==1 then
-      -- K2+K3: toggle buffer that is being played
-      state_buffer=3-state_buffer
-      update_buffer()
-    else
-      -- K1 or K2: switch between voices
-      state_v=state_v+(n*2-5)
-      if state_v>6 then
-        state_v=1
-      elseif state_v<1 then
-        state_v=6
-      end
-    end
-    shift23=1
-  elseif (n==2 or n==3) and z==0 then
-    shift23=0
   end
   redraw()
 end
@@ -252,12 +240,14 @@ function redraw()
   screen.move(1,10)
   screen.text("hexaphonic v0.1")
   if state_recording==1 then
-    screen.move(const_line_width,10)
+    screen.move(105,10)
     screen.text(string.format("rec %d",state_buffer))
   end
-  local p=10
+  local p=14
+  screen.move(8,p)
+  horziontal_line(state_level,p)
+  p=p+3
   for i=1,6 do
-    p=p+4
     screen.move(8,p)
     horziontal_line(voice[i].level2,p)
     p=p+1
@@ -274,7 +264,7 @@ function redraw()
     screen.level(7)
     screen.move(8+util.clamp(const_line_width*(voice[i].ls2)/15,0,110),p)
     horziontal_line(util.clamp((voice[i].le2-voice[i].ls2)/15,0,1))
-    p=p+1
+    p=p+3
   end
   screen.stroke()
   -- normal display
