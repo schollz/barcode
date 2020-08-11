@@ -12,6 +12,7 @@ state_recording=0
 state_shift=0
 state_buffer=1
 state_lfo_time=0
+state_sticky=0
 state_lfo_freeze=0
 state_level=1.0
 state_parm=0
@@ -165,7 +166,16 @@ function enc(n,d)
   if n==1 then
     state_level=util.clamp(state_level+d/100,0,1)
   elseif n==2 then
-    state_parm=util.clamp(state_parm+d,0,30)
+    -- make knob sticky around levels
+    if (state_parm-1)%5==0 then
+      state_sticky=state_sticky+1
+      if state_sticky>4 then
+        state_sticky=0
+      end
+    end
+    if state_sticky==0 then
+      state_parm=util.clamp(state_parm+d,0,30)
+    end
   elseif n==3 then
     j=1
     for i=1,6 do
