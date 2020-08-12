@@ -1,15 +1,16 @@
--- barcode v0.1
+-- barcode v0.2
 -- six-speed six-voice looper
 --
 -- llllllll.co/t/barcode
 --
--- hold K1 + press K2 to record
--- press again to play
+-- hold K1 + press K2 to record,
+-- then press K1+K2 again to play
 -- E1 changes total levels
 -- E2 dials through parameters
 -- E3 adjusts current parameter
 -- K2 toggles freezing lfos
 -- K3 switches buffers
+-- hold K1 & press K3 to clear buffer
 
 state_recording=0
 state_shift=0
@@ -241,9 +242,11 @@ function key(n,z)
     -- K3: switch buffers
     state_buffer=3-state_buffer
     update_buffer()
-  elseif state_shift==1 and (n==2 or n==3) and z==1 then
-    -- K1+K2: toggle recording into buffer 1
-    -- K1+K3: toggle recording into buffer 2
+  elseif state_shift==1 and n==3 and z==1 then
+    -- K1+K3: clear current buffer
+    softcut.buffer_clear_channel(state_buffer)
+  elseif state_shift==1 and n==2 and z==1 then
+    -- K1+K2: toggle recording into current buffer
     state_recording=1-state_recording
     if state_recording==1 then
       -- turn off all voices, except first
@@ -284,13 +287,13 @@ function redraw()
   -- esoteric display
   screen.move(1,10)
   if state_shift==1 then
-    screen.move(2,11)
+    screen.move(3,12)
   end
   local freezestring=state_buffer..">"
   if state_lfo_freeze==1 then
     freezestring=state_buffer.."-"
   end
-  screen.text("barcode v0.1 "..freezestring)
+  screen.text("barcode v0.2 "..freezestring)
   if state_recording==1 then
     screen.move(80,10)
     screen.text(string.format("rec%d %.2f",state_buffer,state_recordingtime))
