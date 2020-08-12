@@ -15,7 +15,19 @@ this is `barcode` - my second patch for [norns](https://monome.org/docs/norns/).
 
 ## documentation
 
-press K2 (buffer 1) or K3 (buffer 2) to record a loop. press again to stop recording.
+press K1+K2 to record. press again to play.
+
+E1 changes total levels.
+
+E2 dials through parameters.
+
+E3 adjusts current parameter.
+
+K1 toggles freezing lfos.
+
+K2 switches buffers.
+
+## about
 
 after recording finishes, the corresponding buffer will be played on six different voices. 
 
