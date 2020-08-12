@@ -6,6 +6,8 @@ this is `barcode` - my second patch for [norns](https://monome.org/docs/norns/).
 
 ## demo
 
+<p align="center"><a href="https://www.instagram.com/p/CDxUwsSh7oP/?utm_source=ig_web_button_share_sheet"><img src="https://user-images.githubusercontent.com/6550035/89964863-1f368980-dc00-11ea-87f4-ea58cf29d40d.png" alt="Demo of playing" width=80%></a></p>
+
 ## requirements
 
 - norns
