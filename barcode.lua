@@ -3,13 +3,13 @@
 --
 -- llllllll.co/t/barcode
 --
--- press K1+K2 to record
+-- hold K1 + press K2 to record
 -- press again to play
 -- E1 changes total levels
 -- E2 dials through parameters
 -- E3 adjusts current parameter
--- K1 toggles freezing lfos
--- K2 switches buffers
+-- K2 toggles freezing lfos
+-- K3 switches buffers
 
 state_recording=0
 state_shift=0

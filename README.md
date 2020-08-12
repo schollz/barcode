@@ -15,7 +15,7 @@ this is `barcode` - my second patch for [norns](https://monome.org/docs/norns/).
 
 ## documentation
 
-press K1+K2 to record. press again to play.
+hold K1 + press K2 to record. press again to play.
 
 E1 changes total levels.
 
@@ -23,9 +23,9 @@ E2 dials through parameters.
 
 E3 adjusts current parameter.
 
-K1 toggles freezing lfos.
+K2 toggles freezing lfos.
 
-K2 switches buffers.
+K3 switches buffers.
 
 ## about
 
