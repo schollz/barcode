@@ -19,19 +19,19 @@ state_lfo_freeze=0
 state_level=1.0
 state_parm=0
 state_recordingtime=0.0
-state_buffer_size={8,8} -- seconds in the buffer
+state_buffer_size={60,60} -- seconds in the buffer
 voice={}
-rates={0,0.125,0.25,0.5,1,1.5,2,4}
+rates={0,0.125,0.25,0.5,1,2,4}
 
 const_lfo_inc=0.25 -- seconds between updates
 const_line_width=116
-const_num_rates=8
+const_num_rates=7
 
 function init()
   audio.comp_mix(1) -- turn on compressor
   for i=1,6 do
     voice[i]={}
-    voice[i].level={set=0,adj=0,calc=0,lfo=1,lfo_offset=math.random(0,60),lfo_period=lfo_med_frequency()}
+    voice[i].level={set=0,adj=0,calc=0,lfo=1,lfo_offset=math.random(0,60),lfo_period=lfo_low_frequency()}
     voice[i].pan={set=0,adj=0,calc=0,lfo=1,lfo_offset=math.random(0,60),lfo_period=lfo_high_frequency()}
     voice[i].rate={set=0,adj=0,calc=4,lfo=1,lfo_offset=math.random(0,60),lfo_period=0}
     voice[i].sign={set=-1,adj=0,calc=0,lfo=1,lfo_offset=math.random(0,60),lfo_period=lfo_low_frequency()}
@@ -40,12 +40,12 @@ function init()
   end
   -- initialize voice 1 = standard
   -- intitialize voice 2-6 = decreasing in volume, increasing in pitch
-  voice[1].level.set=1.0
-  voice[2].level.set=0.8
-  voice[3].level.set=0.6
-  voice[4].level.set=0.3
+  voice[1].level.set=0.6
+  voice[2].level.set=0.6
+  voice[3].level.set=1.0
+  voice[4].level.set=1.0
   voice[5].level.set=0.2
-  voice[6].level.set=0.05
+  voice[6].level.set=0.015
   voice[1].pan.set=0.3
   voice[2].pan.set=0.4
   voice[3].pan.set=0.5
@@ -53,11 +53,11 @@ function init()
   voice[5].pan.set=0.7
   voice[6].pan.set=0.8
   voice[1].rate.set=5
-  voice[2].rate.set=3
-  voice[3].rate.set=4
-  voice[4].rate.set=6
-  voice[5].rate.set=7
-  voice[6].rate.set=8
+  voice[2].rate.set=2
+  voice[3].rate.set=3
+  voice[4].rate.set=4
+  voice[5].rate.set=6
+  voice[6].rate.set=7
   for i=1,6 do
     voice[i].level.calc=voice[i].level.set
     voice[i].pan.calc=voice[i].pan.set
@@ -105,6 +105,7 @@ end
 function update_lfo()
   if state_recording==1 then
     state_recordingtime=state_recordingtime+const_lfo_inc
+    redraw()
     do return end
   end
   
@@ -145,21 +146,21 @@ function update_lfo()
           voice[i].sign.calc=1
         end
         softcut.rate(i,voice[i].sign.calc*rates[voice[i].rate.calc])
-      elseif j==5 then
-        if state_lfo_freeze==0 then
-          voice[i].le.lfo=calculate_lfo(voice[i].le.lfo_period,voice[i].le.lfo_offset)*state_buffer_size[state_buffer]/2+state_buffer_size[state_buffer]/2
-        end
-        voice[i].le.calc=util.clamp(voice[i].le.lfo+voice[i].le.adj,1,state_buffer_size[state_buffer])
-        softcut.loop_end(i,1+voice[i].le.calc)
       elseif j==6 then
         if state_lfo_freeze==0 then
-          voice[i].ls.lfo=calculate_lfo(voice[i].ls.lfo_period,voice[i].ls.lfo_offset)*state_buffer_size[state_buffer]/2+state_buffer_size[state_buffer]/2
+          voice[i].le.lfo=calculate_lfo(voice[i].le.lfo_period,voice[i].le.lfo_offset)*state_buffer_size[state_buffer]/2+2*state_buffer_size[state_buffer]/3
         end
-        voice[i].ls.calc=util.clamp(voice[i].ls.lfo+voice[i].ls.adj,0,voice[i].le.calc-2)
+        voice[i].le.calc=util.clamp(voice[i].ls.calc+voice[i].le.lfo+voice[i].le.adj,state_buffer_size[state_buffer]/8,state_buffer_size[state_buffer])
+        softcut.loop_end(i,1+voice[i].le.calc)
+      elseif j==5 then
+        if state_lfo_freeze==0 then
+          voice[i].ls.lfo=calculate_lfo(voice[i].ls.lfo_period,voice[i].ls.lfo_offset)*state_buffer_size[state_buffer]/2+state_buffer_size[state_buffer]/3
+        end
+        voice[i].ls.calc=util.clamp(voice[i].ls.lfo+voice[i].ls.adj,0,2*state_buffer_size[state_buffer]/3)
         softcut.loop_start(i,1+voice[i].ls.calc)
-        if i==1 then
-          print(voice[i].le.calc,voice[i].ls.calc)
-        end
+        -- if i==1 then
+        --   print(voice[i].le.calc,voice[i].ls.calc)
+        -- end
       end
     end
   end
@@ -171,12 +172,12 @@ function enc(n,d)
     state_level=util.clamp(state_level+d/100,0,1)
   elseif n==2 then
     -- make knob sticky around levels
-    if (state_parm-1)%5==0 then
-      state_sticky=state_sticky+1
-      if state_sticky>4 then
-        state_sticky=0
-      end
-    end
+    -- if (state_parm-1)%5==0 then
+    --   state_sticky=state_sticky+1
+    --   if state_sticky>10 then
+    --     state_sticky=0
+    --   end
+    -- end
     if state_sticky==0 then
       state_parm=util.clamp(state_parm+d,0,30)
     end
@@ -230,14 +231,18 @@ end
 function key(n,z)
   if n==1 then
     state_shift=z
-  elseif n==2 and state_shift==1 then
-    -- K1+K2: toggle freeze lfos
-    state_lfo_freeze=1-state_lfo_freeze
-  elseif (n==2 or n==3) and z==1 then
-    -- K2: toggle recording into buffer 1
-    -- K3: toggle recording into buffer 2
-    state_buffer=n-1
+  elseif n==2 and state_shift==0 then
+    -- K2: toggle freeze lfos
+    if z==1 then
+      state_lfo_freeze=1-state_lfo_freeze
+    end
+  elseif n==3 and z==1 and state_shift==0 then
+    -- K3: switch buffers
+    state_buffer=3-state_buffer
     update_buffer()
+  elseif state_shift==1 and (n==2 or n==3) and z==1 then
+    -- K1+K2: toggle recording into buffer 1
+    -- K1+K3: toggle recording into buffer 2
     state_recording=1-state_recording
     if state_recording==1 then
       -- turn off all voices, except first
@@ -249,7 +254,7 @@ function key(n,z)
       softcut.rate(1,1)
       softcut.position(1,1)
       softcut.loop_start(1,1)
-      softcut.loop_end(1,state_buffer_size[state_buffer]+1)
+      softcut.loop_end(1,60)
       state_recordingtime=0.0
     else
       state_buffer_size[state_buffer]=state_recordingtime
@@ -280,13 +285,13 @@ function redraw()
   if state_shift==1 then
     screen.move(2,11)
   end
-  local freezestring=">"
+  local freezestring=state_buffer..">"
   if state_lfo_freeze==1 then
-    freezestring="-"
+    freezestring=state_buffer.."-"
   end
   screen.text("barcode v0.1 "..freezestring)
   if state_recording==1 then
-    screen.move(100,10)
+    screen.move(80,10)
     screen.text(string.format("rec%d %.2f",state_buffer,state_recordingtime))
   end
   local p=14
@@ -299,7 +304,7 @@ function redraw()
     horziontal_line(voice[i].level.calc,p)
     p=p+1 j=j+1
     draw_dot(j,p)
-    if value<voice[i].pan.calc then
+    if voice[i].pan.calc<0 then
       screen.move(8+round(const_line_width*0.5*(1-math.abs(voice[i].pan.calc))),p)
       screen.line_rel(round(const_line_width*0.5*math.abs(voice[i].pan.calc)),0)
     else
@@ -331,7 +336,7 @@ end
 
 -- define lfos, each returns a period in seconds
 function lfo_high_frequency()
-  return math.random(0.5,5) -- 200 mHz to 2 Hz
+  return math.random(1,10)/2 -- 200 mHz to 2 Hz
 end
 
 function lfo_med_frequency()
