@@ -17,6 +17,8 @@ this is `barcode` - my second patch for [norns](https://monome.org/docs/norns/).
 
 hold K1 + press K2 to record. press again to play.
 
+(K1 is "held" when you see the "barcode" text shift a few pixels)
+
 E1 changes total levels.
 
 E2 dials through parameters.
@@ -44,6 +46,10 @@ in the ui, the parameters of the voices are represented as six groups of five li
 you can bias the modulation for any parameter using E2 to move the corresponding line (a parameter for a voice) and then adjusting with E3.
 
 the line at the very top is for the overall level, which can be adjusted with E1.
+
+## my other patches
+
+- [blndr](https://github.com/schollz/blndr): a quantized delay for monomes norns with time morphing
 
 ## thanks
 
