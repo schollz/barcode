@@ -3,14 +3,19 @@
 --
 -- llllllll.co/t/barcode
 --
--- hold K1 + press K2 to record,
--- then press K1+K2 again to play
+--
+--
+--    ▼ instructions below ▼
+--
+--
+-- hold K1 & press K2 to record,
+-- then K1&K2 again to play
 -- E1 changes total levels
 -- E2 dials through parameters
 -- E3 adjusts current parameter
 -- K2 toggles freezing lfos
 -- K3 switches buffers
--- hold K1 & press K3 to clear buffer
+-- hold K1 & press K3 to clear
 
 state_recording=0
 state_shift=0
@@ -249,11 +254,9 @@ function key(n,z)
     -- K1+K2: toggle recording into current buffer
     state_recording=1-state_recording
     if state_recording==1 then
-      -- turn off all voices, except first
-      -- change rate to 1
-      for i=2,6 do
-        softcut.level(i,0)
-      end
+      -- change rate to 1 and slew to 0
+      -- to avoid recording slew sound
+      softcut.rate_slew_time(1,0)
       softcut.level(1,1)
       softcut.rate(1,1)
       softcut.position(1,1)
@@ -261,7 +264,11 @@ function key(n,z)
       softcut.loop_end(1,60)
       state_recordingtime=0.0
     else
-      state_buffer_size[state_buffer]=state_recordingtime
+      softcut.rate_slew_time(1,1)
+      -- change the buffer size (only if its bigger)
+      if state_buffer_size[state_buffer]==60 or state_recordingtime>state_buffer_size[state_buffer] then
+        state_buffer_size[state_buffer]=state_recordingtime
+      end
     end
     softcut.rec(1,state_recording)
   end
