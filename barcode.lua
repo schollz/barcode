@@ -27,6 +27,7 @@ state_level=1.0
 state_parm=0
 state_recordingtime=0.0
 state_buffer_size={60,60} -- seconds in the buffer
+state_has_recorded=0
 voice={}
 rates={0,0.125,0.25,0.5,1,2,4}
 
@@ -264,6 +265,7 @@ function key(n,z)
       softcut.loop_end(1,60)
       state_recordingtime=0.0
     else
+      state_has_recorded=1
       softcut.rate_slew_time(1,1)
       -- change the buffer size (only if its bigger)
       if state_buffer_size[state_buffer]==60 or state_recordingtime>state_buffer_size[state_buffer] then
@@ -296,9 +298,12 @@ function redraw()
   if state_shift==1 then
     screen.move(3,12)
   end
-  local freezestring=state_buffer..">"
-  if state_lfo_freeze==1 then
-    freezestring=state_buffer.."-"
+  local freezestring=string.format("%d",state_buffer)
+  if state_has_recorded==1 then
+    freezestring=state_buffer..">"
+    if state_lfo_freeze==1 then
+      freezestring=state_buffer.."-"
+    end
   end
   screen.text("barcode v0.2 "..freezestring)
   if state_recording==1 then
