@@ -52,7 +52,7 @@ function init()
   voice[2].level.set=0.6
   voice[3].level.set=1.0
   voice[4].level.set=1.0
-  voice[5].level.set=0.2
+  voice[5].level.set=0.1
   voice[6].level.set=0.015
   voice[1].pan.set=0.3
   voice[2].pan.set=0.4
