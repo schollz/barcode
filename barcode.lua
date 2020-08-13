@@ -1,4 +1,4 @@
--- barcode v0.2
+-- barcode v0.3
 -- six-speed six-voice looper
 --
 -- llllllll.co/t/barcode
@@ -118,7 +118,9 @@ function update_lfo()
   end
   
   -- update lfo counter
-  state_lfo_time=state_lfo_time+const_lfo_inc
+  if state_lfo_freeze==0 then
+    state_lfo_time=state_lfo_time+const_lfo_inc
+  end
   if state_lfo_time>60 then
     state_lfo_time=0
   end
@@ -250,6 +252,7 @@ function key(n,z)
     update_buffer()
   elseif state_shift==1 and n==3 and z==1 then
     -- K1+K3: clear current buffer
+    state_has_recorded=0
     softcut.buffer_clear_channel(state_buffer)
   elseif state_shift==1 and n==2 and z==1 then
     -- K1+K2: toggle recording into current buffer
@@ -305,7 +308,7 @@ function redraw()
       freezestring=state_buffer.."-"
     end
   end
-  screen.text("barcode v0.2 "..freezestring)
+  screen.text("barcode v0.3 "..freezestring)
   if state_recording==1 then
     screen.move(80,10)
     screen.text(string.format("rec%d %.2f",state_buffer,state_recordingtime))
