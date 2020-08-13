@@ -32,7 +32,7 @@ voice={}
 rates={0,0.125,0.25,0.5,1,2,4}
 
 const_lfo_inc=0.25 -- seconds between updates
-const_line_width=116
+const_line_width=114
 const_num_rates=7
 
 function init()
@@ -310,10 +310,12 @@ function redraw()
     screen.move(80,10)
     screen.text(string.format("rec%d %.2f",state_buffer,state_recordingtime))
   end
-  local p=14
+  local p=16
   screen.move(8,p)
   horziontal_line(state_level,p)
-  p=p+3
+  screen.move(8,p+1)
+  horziontal_line(state_level,p)
+  p=p+4
   j=1
   for i=1,6 do
     draw_dot(j,p) screen.move(8,p)
