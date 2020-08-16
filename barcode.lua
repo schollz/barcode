@@ -45,6 +45,7 @@ function init()
     voice[i].sign={set=-1,adj=0,calc=0,lfo=1,lfo_offset=math.random(0,60),lfo_period=lfo_low_frequency()}
     voice[i].ls={set=0,adj=0,calc=0,lfo=1,lfo_offset=math.random(0,60),lfo_period=lfo_low_frequency()}
     voice[i].le={set=state_buffer_size[state_buffer],adj=0,calc=0,lfo=1,lfo_offset=math.random(0,60),lfo_period=lfo_low_frequency()}
+    voice[i].buffer={set=2-i%2,adj=0,calc=0,lfo=1,lfo_offset=math.random(0,60),lfo_period=lfo_low_frequency()}
   end
   -- initialize voice 1 = standard
   -- intitialize voice 2-6 = decreasing in volume, increasing in pitch
@@ -70,6 +71,7 @@ function init()
     voice[i].level.calc=voice[i].level.set
     voice[i].pan.calc=voice[i].pan.set
     voice[i].rate.calc=voice[i].rate.set
+    voice[i].rate.buffer=voice[i].rate.buffer
   end
   
   -- send audio input to softcut input
@@ -126,7 +128,7 @@ function update_lfo()
   end
   -- update level modulated by lfos
   for i=1,6 do
-    for j=1,6 do
+    for j=1,7 do
       if j==1 then
         if state_lfo_freeze==0 then
           voice[i].level.lfo=math.abs(calculate_lfo(voice[i].level.lfo_period,voice[i].level.lfo_offset))
@@ -162,6 +164,16 @@ function update_lfo()
         end
         voice[i].le.calc=util.clamp(voice[i].ls.calc+voice[i].le.lfo+voice[i].le.adj,state_buffer_size[state_buffer]/8,state_buffer_size[state_buffer])
         softcut.loop_end(i,1+voice[i].le.calc)
+      elseif j==7 then
+        -- buffer lfo oscillates between 1 and 2
+        if state_lfo_freeze==0 then
+          voice[i].buffer.lfo=1.5+calculate_lfo(voice[i].buffer.lfo_period,voice[i].buffer.lfo_offset)/2
+        end
+        local new_buffer=util.clamp(voice[i].buffer.set+voice[i].buffer.lfo+voice[i].buffer.adj,1,2)
+        if voice[i].buffer.calc~=new_buffer then
+          voice[i].buffer.calc=new_buffer
+          softcut.buffer(i,voice[i].buffer.calc)
+        end
       elseif j==5 then
         if state_lfo_freeze==0 then
           voice[i].ls.lfo=calculate_lfo(voice[i].ls.lfo_period,voice[i].ls.lfo_offset)*state_buffer_size[state_buffer]/2+state_buffer_size[state_buffer]/3
