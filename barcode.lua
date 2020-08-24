@@ -318,7 +318,7 @@ function redraw()
   screen.text("barcode v0.4 "..freezestring)
   if state_recording==1 then
     screen.move(80,10)
-    screen.text(string.format("rec%d %.2f",state_buffer,state_recordingtime))
+    screen.text(string.format("rec%d %.2fs",state_buffer,state_buffer_size[1]-state_recordingtime))
   end
   local p=16
   local level_show=state_level
