@@ -1,4 +1,4 @@
--- barcode v0.3
+-- barcode v0.4
 -- six-speed six-voice looper
 --
 -- llllllll.co/t/barcode
@@ -10,7 +10,7 @@
 --
 -- hold K1 & press K2 to record,
 -- then K1&K2 again to play
--- E1 changes total levels
+-- E1 changes output/rec levels
 -- E2 dials through parameters
 -- E3 adjusts current parameter
 -- K2 toggles freezing lfos
@@ -26,6 +26,7 @@ state_lfo_freeze=0
 state_level=1.0
 state_parm=0
 state_recordingtime=0.0
+state_recording_level=1.0
 state_buffer_size={60,60} -- seconds in the buffer
 state_has_recorded=0
 voice={}
@@ -94,6 +95,7 @@ function init()
   softcut.pre_level(1,1.0)
   -- set record state of voice 1 to 1
   softcut.rec(1,0)
+  softcut.rec_level(1,state_recording_level)
   
   lfo=metro.init()
   lfo.time=const_lfo_inc
@@ -179,7 +181,11 @@ end
 
 function enc(n,d)
   if n==1 then
-    state_level=util.clamp(state_level+d/100,0,1)
+    if state_recording==1 then
+      state_recording_level=util.clamp(state_recording_level+d/100,0,1)
+    else
+      state_recording_level=util.clamp(state_recording_level+d/100,0,1)
+    end
   elseif n==2 then
     -- make knob sticky around levels
     -- if (state_parm-1)%5==0 then
@@ -261,11 +267,12 @@ function key(n,z)
       -- change rate to 1 and slew to 0
       -- to avoid recording slew sound
       softcut.rate_slew_time(1,0)
-      softcut.level(1,1)
+      softcut.level(1,state_level)
       softcut.rate(1,1)
       softcut.position(1,1)
       softcut.loop_start(1,1)
       softcut.loop_end(1,60)
+      softcut.rec_level(1,state_recording_level)
       state_recordingtime=0.0
     else
       state_has_recorded=1
@@ -308,16 +315,20 @@ function redraw()
       freezestring=state_buffer.."-"
     end
   end
-  screen.text("barcode v0.3 "..freezestring)
+  screen.text("barcode v0.4 "..freezestring)
   if state_recording==1 then
     screen.move(80,10)
     screen.text(string.format("rec%d %.2f",state_buffer,state_recordingtime))
   end
   local p=16
+  local level_show=state_level
+  if state_recording==1 then
+    level_show=state_recording_level
+  end
   screen.move(8,p)
-  horziontal_line(state_level,p)
+  horziontal_line(level_show,p)
   screen.move(8,p+1)
-  horziontal_line(state_level,p)
+  horziontal_line(level_show,p)
   p=p+4
   j=1
   for i=1,6 do

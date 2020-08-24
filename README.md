@@ -15,11 +15,11 @@ this is `barcode` - my second patch for [norns](https://monome.org/docs/norns/).
 
 ## documentation
 
-hold K1 + press K2 to record. press again to play.
+hold K1 + press K2 to record. press K1&K2 again to play.
 
 (K1 is "held" when you see the "barcode" text shift a few pixels)
 
-E1 changes total levels.
+E1 changes output level. when recording, E1 changes recording level.
 
 E2 dials through parameters.
 
