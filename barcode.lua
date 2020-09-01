@@ -8,14 +8,15 @@
 --    ▼ instructions below ▼
 --
 --
--- hold K1 & press K2 to record,
--- then K1&K2 again to play
+-- hold K1 to shift
+-- K2 to pauses LFOs
+-- K3 starts recording
+-- any key stops recording
+-- shift+K2 switches buffer
+-- shift+K3 clears
 -- E1 changes output/rec levels
 -- E2 dials through parameters
 -- E3 adjusts current parameter
--- K2 toggles freezing lfos
--- K3 switches buffers
--- hold K1 & press K3 to clear
 
 state_recording=0
 state_shift=0
@@ -245,6 +246,7 @@ local function update_buffer()
 end
 
 function stop_recording()
+	state_recording=0
       -- change rate to 1 and slew to 0
       -- to avoid recording slew sound
       softcut.rate_slew_time(1,0)
@@ -260,6 +262,7 @@ function stop_recording()
 end
 
 function start_recording()
+	state_recording=1
       state_has_recorded=1
       softcut.rate_slew_time(1,1)
       -- change the buffer size (only if its bigger)
@@ -270,7 +273,9 @@ function start_recording()
 end
 
 function key(n,z)
-  if n==1 then
+	if state_recording==1 and z==1 then 
+		stop_recording()
+elseif n==1 then
     state_shift=z
   elseif state_shift==0 and n==3 and z==1 then
     -- K3: toggle recording into current buffer
