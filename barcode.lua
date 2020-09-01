@@ -370,22 +370,28 @@ function redraw()
   screen.stroke()
   
   if state_recording==1 then
-    screen.level(0)
-    x=34
-    y=28
-    w=65
-    screen.rect(x,y,w,10)
-    screen.fill()
-    screen.level(15)
-    screen.rect(x,y,w,10)
-    screen.stroke()
-    screen.move(x+w/2,y+7)
-    screen.text_center(string.format("rec%d %.2fs",state_buffer,state_recordingtime))
+    show_message(string.format("rec%d %.2fs",state_buffer,state_recordingtime))
   end
   screen.update()
 end
 
+--
 -- utility functions
+--
+function show_message(message)
+  screen.level(0)
+  x=34
+  y=28
+  w=string.len(message)*8
+  screen.rect(x,y,w,10)
+  screen.fill()
+  screen.level(15)
+  screen.rect(x,y,w,10)
+  screen.stroke()
+  screen.move(x+w/2,y+7)
+  screen.text_center(message)
+end
+
 function round(num)
   if num>=0 then return math.floor(num+.5)
   else return math.ceil(num-.5) end
