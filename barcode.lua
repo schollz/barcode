@@ -246,44 +246,44 @@ local function update_buffer()
 end
 
 function stop_recording()
-	state_recording=0
-      -- change rate to 1 and slew to 0
-      -- to avoid recording slew sound
-      softcut.rate_slew_time(1,0)
-      softcut.level(1,state_level)
-      softcut.rate(1,1)
-      softcut.position(1,1)
-      softcut.loop_start(1,1)
-      softcut.loop_end(1,60)
-      softcut.rec_level(1,state_recording_level)
-      state_recordingtime=0.0
-    softcut.rec(1,0)
-
+  state_recording=0
+  -- change rate to 1 and slew to 0
+  -- to avoid recording slew sound
+  softcut.rate_slew_time(1,0)
+  softcut.level(1,state_level)
+  softcut.rate(1,1)
+  softcut.position(1,1)
+  softcut.loop_start(1,1)
+  softcut.loop_end(1,60)
+  softcut.rec_level(1,state_recording_level)
+  state_recordingtime=0.0
+  softcut.rec(1,0)
+  
 end
 
 function start_recording()
-	state_recording=1
-      state_has_recorded=1
-      softcut.rate_slew_time(1,1)
-      -- change the buffer size (only if its bigger)
-      if state_buffer_size[state_buffer]==60 or state_recordingtime>state_buffer_size[state_buffer] then
-        state_buffer_size[state_buffer]=state_recordingtime
-      end
-    softcut.rec(1,1)
+  state_recording=1
+  state_has_recorded=1
+  softcut.rate_slew_time(1,1)
+  -- change the buffer size (only if its bigger)
+  if state_buffer_size[state_buffer]==60 or state_recordingtime>state_buffer_size[state_buffer] then
+    state_buffer_size[state_buffer]=state_recordingtime
+  end
+  softcut.rec(1,1)
 end
 
 function key(n,z)
-	if state_recording==1 and z==1 then 
-		stop_recording()
-elseif n==1 then
+  if state_recording==1 and z==1 then
+    stop_recording()
+  elseif n==1 then
     state_shift=z
   elseif state_shift==0 and n==3 and z==1 then
     -- K3: toggle recording into current buffer
     state_recording=1-state_recording
     if state_recording==1 then
-	    stop_recording()
+      stop_recording()
     else
-	    start_recording()
+      start_recording()
     end
   elseif n==2 and state_shift==0 then
     -- K2: toggle freeze lfos
