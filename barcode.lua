@@ -315,12 +315,7 @@ function redraw()
       freezestring=state_buffer.."-"
     end
   end
-  screen.text("barcode v0.4 "..freezestring)
-  if state_recording==1 then
-    screen.move(80,10)
-    screen.text(string.format("rec%d %.2fs",state_buffer,state_recordingtime))
-  end
-  local p=16
+  local p=2
   local level_show=state_level
   if state_recording==1 then
     level_show=state_recording_level
@@ -334,7 +329,8 @@ function redraw()
   for i=1,6 do
     draw_dot(j,p) screen.move(8,p)
     horziontal_line(voice[i].level.calc,p)
-    p=p+1 j=j+1
+    horziontal_line(voice[i].level.calc,p+1)
+    p=p+2 j=j+1
     draw_dot(j,p)
     if voice[i].pan.calc<0 then
       screen.move(8+round(const_line_width*0.5*(1-math.abs(voice[i].pan.calc))),p)
@@ -354,9 +350,23 @@ function redraw()
     draw_dot(j,p)
     screen.move(8+util.clamp(const_line_width*(voice[i].ls.calc)/state_buffer_size[state_buffer],0,110),p)
     horziontal_line(util.clamp((voice[i].le.calc-voice[i].ls.calc)/state_buffer_size[state_buffer],0,1))
-    p=p+3 j=j+1
+    p=p+4 j=j+1
   end
   screen.stroke()
+  
+  if state_recording==1 then
+    screen.level(0)
+    x=34
+    y=28
+    w=65
+    screen.rect(x,y,w,10)
+    screen.fill()
+    screen.level(15)
+    screen.rect(x,y,w,10)
+    screen.stroke()
+    screen.move(x+w/2,y+7)
+    screen.text_center(string.format("rec%d %.2fs",state_buffer,state_recordingtime))
+  end
   screen.update()
 end
 
