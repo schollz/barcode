@@ -30,11 +30,12 @@ state_recordingtime=0.0
 state_recording_level=1.0
 state_buffer_size={60,60} -- seconds in the buffer
 state_has_recorded=0
+state_message=""
 voice={}
 rates={0,0.125,0.25,0.5,1,2,4}
 
 const_lfo_inc=0.25 -- seconds between updates
-const_line_width=114
+const_line_width=112
 const_num_rates=7
 
 function init()
@@ -239,14 +240,14 @@ end
 local function update_buffer()
   for i=1,6 do
     softcut.buffer(i,state_buffer)
-    -- softcut.position(i,1)
+    softcut.position(i,1)
   end
   -- reset lfo
   state_lfo_time=0
 end
 
-function stop_recording()
-  state_recording=0
+function start_recording()
+  state_recording=1
   -- change rate to 1 and slew to 0
   -- to avoid recording slew sound
   softcut.rate_slew_time(1,0)
@@ -257,19 +258,19 @@ function stop_recording()
   softcut.loop_end(1,60)
   softcut.rec_level(1,state_recording_level)
   state_recordingtime=0.0
-  softcut.rec(1,0)
+  softcut.rec(1,1)
   
 end
 
-function start_recording()
-  state_recording=1
+function stop_recording()
+  state_recording=0
   state_has_recorded=1
   softcut.rate_slew_time(1,1)
   -- change the buffer size (only if its bigger)
   if state_buffer_size[state_buffer]==60 or state_recordingtime>state_buffer_size[state_buffer] then
     state_buffer_size[state_buffer]=state_recordingtime
   end
-  softcut.rec(1,1)
+  softcut.rec(1,0)
 end
 
 function key(n,z)
@@ -281,9 +282,9 @@ function key(n,z)
     -- K3: toggle recording into current buffer
     state_recording=1-state_recording
     if state_recording==1 then
-      stop_recording()
-    else
       start_recording()
+    else
+      stop_recording()
     end
   elseif n==2 and state_shift==0 then
     -- K2: toggle freeze lfos
@@ -294,58 +295,80 @@ function key(n,z)
     -- shift+K2: switch buffers
     state_buffer=3-state_buffer
     update_buffer()
+    clock.run(function()
+      state_message="buffer "..state_buffer
+      redraw()
+      clock.sleep(1)
+      state_message=""
+      redraw()
+    end)
   elseif state_shift==1 and n==3 and z==1 then
     -- shift+K3: clear current buffer
     state_has_recorded=0
     softcut.buffer_clear_channel(state_buffer)
+    clock.run(function()
+      state_message="cleared"
+      redraw()
+      clock.sleep(1)
+      state_message=""
+      redraw()
+    end)
   end
   redraw()
 end
 
 local function horziontal_line(value,p)
+  if value==0 then
+    do return end
+  end
   if value<0 then
     screen.move(8+round(const_line_width*(1-math.abs(value))),p)
   end
-  screen.line_rel(round(const_line_width*math.abs(value)),0)
+  screen.line_rel(math.floor(const_line_width*math.abs(value)),0)
 end
 
 local function draw_dot(j,p)
-  if j==state_parm then
+  screen.stroke()
+  if state_parm==0 then
+    screen.level(15)
+  elseif j==state_parm then
+    screen.level(15)
     screen.move(1,p)
     screen.line_rel(4,0)
+    screen.stroke()
+  else
+    screen.level(1)
   end
 end
 
 function redraw()
   screen.clear()
   -- esoteric display
-  screen.move(1,10)
-  if state_shift==1 then
-    screen.move(3,12)
-  end
-  local freezestring=string.format("%d",state_buffer)
-  if state_has_recorded==1 then
-    freezestring=state_buffer..">"
-    if state_lfo_freeze==1 then
-      freezestring=state_buffer.."-"
-    end
-  end
   local p=2
+  screen.level(15)
+  if state_has_recorded==0 then
+    screen.level(1)
+  end
   local level_show=state_level
   if state_recording==1 then
+    screen.level(15)
     level_show=state_recording_level
   end
   screen.move(8,p)
   horziontal_line(level_show,p)
   screen.move(8,p+1)
   horziontal_line(level_show,p)
-  p=p+4
-  j=1
+  screen.stroke()
+  p=p+4+3*state_shift
+  j=1+3*state_shift
   for i=1,6 do
-    draw_dot(j,p) screen.move(8,p)
+    draw_dot(j,p)
+    screen.move(8,p)
     horziontal_line(voice[i].level.calc,p)
-    horziontal_line(voice[i].level.calc,p+1)
-    p=p+2 j=j+1
+    p=p+1
+    screen.move(8,p)
+    horziontal_line(voice[i].level.calc,p)
+    p=p+1 j=j+1
     draw_dot(j,p)
     if voice[i].pan.calc<0 then
       screen.move(8+round(const_line_width*0.5*(1-math.abs(voice[i].pan.calc))),p)
@@ -369,6 +392,9 @@ function redraw()
   end
   screen.stroke()
   
+  if state_message~="" then
+    show_message(state_message)
+  end
   if state_recording==1 then
     show_message(string.format("rec%d %.2fs",state_buffer,state_recordingtime))
   end
@@ -380,9 +406,10 @@ end
 --
 function show_message(message)
   screen.level(0)
-  x=34
-  y=28
   w=string.len(message)*8
+  x=32
+  y=24
+  screen.move(x,y)
   screen.rect(x,y,w,10)
   screen.fill()
   screen.level(15)
