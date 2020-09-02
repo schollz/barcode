@@ -25,8 +25,6 @@ this is `barcode` - my second patch for [norns](https://monome.org/docs/norns/).
 - E2 dials through parameters
 - E3 adjusts current parameter
 
-## about
-
 after recording finishes, the corresponding buffer will be played on six different voices. 
 
 each voice has six parameters: level, pan, rate, reverse, start point, and end point. each of these parameters is modulated by a randomly initialized lfo (that's 36 lfos!). at this point, the lfos cannot be modulated except by changing the code.
