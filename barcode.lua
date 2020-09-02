@@ -32,11 +32,11 @@ state_buffer_size={60,60} -- seconds in the buffer
 state_has_recorded=0
 state_message=""
 voice={}
-rates={0,0.125,0.25,0.5,1,2,4}
+rates={0.125,0.25,0.5,1,2,4}
 
 const_lfo_inc=0.25 -- seconds between updates
 const_line_width=112
-const_num_rates=7
+const_num_rates=6
 
 function init()
   audio.comp_mix(1) -- turn on compressor
@@ -56,19 +56,19 @@ function init()
   voice[3].level.set=1.0
   voice[4].level.set=1.0
   voice[5].level.set=0.1
-  voice[6].level.set=0.015
+  voice[6].level.set=0.05
   voice[1].pan.set=0.3
   voice[2].pan.set=0.4
   voice[3].pan.set=0.5
   voice[4].pan.set=0.6
   voice[5].pan.set=0.7
   voice[6].pan.set=0.8
-  voice[1].rate.set=5
-  voice[2].rate.set=2
-  voice[3].rate.set=3
-  voice[4].rate.set=4
-  voice[5].rate.set=6
-  voice[6].rate.set=7
+  voice[1].rate.set=4
+  voice[2].rate.set=1
+  voice[3].rate.set=2
+  voice[4].rate.set=3
+  voice[5].rate.set=5
+  voice[6].rate.set=6
   for i=1,6 do
     voice[i].level.calc=voice[i].level.set
     voice[i].pan.calc=voice[i].pan.set
