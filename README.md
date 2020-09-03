@@ -56,10 +56,3 @@ this would not have been possible without the stellar [softcut tutorial](https:/
 
 MIT
 
-
-### new in v0.4
-
-- ui: bigger, scrolling highlights parameters
-- ui: better messages, removed redundancies
-- ui: record with just pressing E3
-- bug fix: disallow rate of 0
