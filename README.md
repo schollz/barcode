@@ -39,7 +39,7 @@ in the ui, the parameters of the voices are represented as six groups of five li
 
 you can bias the modulation for any parameter using E2 to move the corresponding line (a parameter for a voice) and then adjusting with E3.
 
-the line at the very top is for the overall level, which can be adjusted with E1.
+the line at the very top is for the overall level, which can be adjusted with E1. during recording, E1 adjusts the recording level.
 
 ## my other patches
 
