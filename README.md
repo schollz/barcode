@@ -15,21 +15,15 @@ this is `barcode` - my second patch for [norns](https://monome.org/docs/norns/).
 
 ## documentation
 
-hold K1 + press K2 to record. press again to play.
-
-(K1 is "held" when you see the "barcode" text shift a few pixels)
-
-E1 changes total levels.
-
-E2 dials through parameters.
-
-E3 adjusts current parameter.
-
-K2 toggles freezing lfos.
-
-K3 switches buffers.
-
-## about
+- hold K1 to shift
+- K2 to pauses LFOs
+- K3 starts recording
+- any key stops recording
+- shift+K2 switches buffer
+- shift+K3 clears
+- E1 changes output/rec levels
+- E2 dials through parameters
+- E3 adjusts current parameter
 
 after recording finishes, the corresponding buffer will be played on six different voices. 
 
@@ -50,6 +44,9 @@ the line at the very top is for the overall level, which can be adjusted with E1
 ## my other patches
 
 - [blndr](https://github.com/schollz/blndr): a quantized delay for monomes norns with time morphing
+- [oooooo](https://github.com/schollz/oooooo): 6 x digital tape loops.
+- [clcks](https://github.com/schollz/clcks): a tempo-locked repeater for monome norns
+
 
 ## thanks
 
@@ -60,3 +57,9 @@ this would not have been possible without the stellar [softcut tutorial](https:/
 MIT
 
 
+### new in v0.4
+
+- ui: bigger, scrolling highlights parameters
+- ui: better messages, removed redundancies
+- ui: record with just pressing E3
+- bug fix: disallow rate of 0

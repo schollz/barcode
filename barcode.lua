@@ -1,4 +1,4 @@
--- barcode v0.3
+-- barcode v0.4
 -- six-speed six-voice looper
 --
 -- llllllll.co/t/barcode
@@ -8,14 +8,15 @@
 --    ▼ instructions below ▼
 --
 --
--- hold K1 & press K2 to record,
--- then K1&K2 again to play
--- E1 changes total levels
+-- hold K1 to shift
+-- K2 to pauses LFOs
+-- K3 starts recording
+-- any key stops recording
+-- shift+K2 switches buffer
+-- shift+K3 clears
+-- E1 changes output/rec levels
 -- E2 dials through parameters
 -- E3 adjusts current parameter
--- K2 toggles freezing lfos
--- K3 switches buffers
--- hold K1 & press K3 to clear
 
 state_recording=0
 state_shift=0
@@ -26,14 +27,16 @@ state_lfo_freeze=0
 state_level=1.0
 state_parm=0
 state_recordingtime=0.0
+state_recording_level=1.0
 state_buffer_size={60,60} -- seconds in the buffer
 state_has_recorded=0
+state_message=""
 voice={}
-rates={0,0.125,0.25,0.5,1,2,4}
+rates={0.125,0.25,0.5,1,2,4}
 
 const_lfo_inc=0.25 -- seconds between updates
-const_line_width=114
-const_num_rates=7
+const_line_width=112
+const_num_rates=6
 
 function init()
   audio.comp_mix(1) -- turn on compressor
@@ -53,19 +56,19 @@ function init()
   voice[3].level.set=1.0
   voice[4].level.set=1.0
   voice[5].level.set=0.1
-  voice[6].level.set=0.015
+  voice[6].level.set=0.05
   voice[1].pan.set=0.3
   voice[2].pan.set=0.4
   voice[3].pan.set=0.5
   voice[4].pan.set=0.6
   voice[5].pan.set=0.7
   voice[6].pan.set=0.8
-  voice[1].rate.set=5
-  voice[2].rate.set=2
-  voice[3].rate.set=3
-  voice[4].rate.set=4
-  voice[5].rate.set=6
-  voice[6].rate.set=7
+  voice[1].rate.set=4
+  voice[2].rate.set=1
+  voice[3].rate.set=2
+  voice[4].rate.set=3
+  voice[5].rate.set=5
+  voice[6].rate.set=6
   for i=1,6 do
     voice[i].level.calc=voice[i].level.set
     voice[i].pan.calc=voice[i].pan.set
@@ -94,6 +97,7 @@ function init()
   softcut.pre_level(1,1.0)
   -- set record state of voice 1 to 1
   softcut.rec(1,0)
+  softcut.rec_level(1,state_recording_level)
   
   lfo=metro.init()
   lfo.time=const_lfo_inc
@@ -179,7 +183,11 @@ end
 
 function enc(n,d)
   if n==1 then
-    state_level=util.clamp(state_level+d/100,0,1)
+    if state_recording==1 then
+      state_recording_level=util.clamp(state_recording_level+d/100,0,1)
+    else
+      state_level=util.clamp(state_level+d/100,0,1)
+    end
   elseif n==2 then
     -- make knob sticky around levels
     -- if (state_parm-1)%5==0 then
@@ -232,96 +240,133 @@ end
 local function update_buffer()
   for i=1,6 do
     softcut.buffer(i,state_buffer)
-    -- softcut.position(i,1)
+    softcut.position(i,1)
   end
   -- reset lfo
   state_lfo_time=0
 end
 
+function start_recording()
+  state_recording=1
+  -- change rate to 1 and slew to 0
+  -- to avoid recording slew sound
+  softcut.rate_slew_time(1,0)
+  softcut.level(1,state_level)
+  softcut.rate(1,1)
+  softcut.position(1,1)
+  softcut.loop_start(1,1)
+  softcut.loop_end(1,60)
+  softcut.rec_level(1,state_recording_level)
+  state_recordingtime=0.0
+  softcut.rec(1,1)
+  
+end
+
+function stop_recording()
+  state_recording=0
+  state_has_recorded=1
+  softcut.rate_slew_time(1,1)
+  -- change the buffer size (only if its bigger)
+  if state_buffer_size[state_buffer]==60 or state_recordingtime>state_buffer_size[state_buffer] then
+    state_buffer_size[state_buffer]=state_recordingtime
+  end
+  softcut.rec(1,0)
+end
+
 function key(n,z)
-  if n==1 then
+  if state_recording==1 and z==1 then
+    stop_recording()
+  elseif n==1 then
     state_shift=z
+  elseif state_shift==0 and n==3 and z==1 then
+    -- K3: toggle recording into current buffer
+    state_recording=1-state_recording
+    if state_recording==1 then
+      start_recording()
+    else
+      stop_recording()
+    end
   elseif n==2 and state_shift==0 then
     -- K2: toggle freeze lfos
     if z==1 then
       state_lfo_freeze=1-state_lfo_freeze
     end
-  elseif n==3 and z==1 and state_shift==0 then
-    -- K3: switch buffers
+  elseif n==2 and z==1 and state_shift==1 then
+    -- shift+K2: switch buffers
     state_buffer=3-state_buffer
     update_buffer()
+    clock.run(function()
+      state_message="buffer "..state_buffer
+      redraw()
+      clock.sleep(1)
+      state_message=""
+      redraw()
+    end)
   elseif state_shift==1 and n==3 and z==1 then
-    -- K1+K3: clear current buffer
+    -- shift+K3: clear current buffer
     state_has_recorded=0
     softcut.buffer_clear_channel(state_buffer)
-  elseif state_shift==1 and n==2 and z==1 then
-    -- K1+K2: toggle recording into current buffer
-    state_recording=1-state_recording
-    if state_recording==1 then
-      -- change rate to 1 and slew to 0
-      -- to avoid recording slew sound
-      softcut.rate_slew_time(1,0)
-      softcut.level(1,1)
-      softcut.rate(1,1)
-      softcut.position(1,1)
-      softcut.loop_start(1,1)
-      softcut.loop_end(1,60)
-      state_recordingtime=0.0
-    else
-      state_has_recorded=1
-      softcut.rate_slew_time(1,1)
-      -- change the buffer size (only if its bigger)
-      if state_buffer_size[state_buffer]==60 or state_recordingtime>state_buffer_size[state_buffer] then
-        state_buffer_size[state_buffer]=state_recordingtime
-      end
-    end
-    softcut.rec(1,state_recording)
+    clock.run(function()
+      state_message="cleared"
+      redraw()
+      clock.sleep(1)
+      state_message=""
+      redraw()
+    end)
   end
   redraw()
 end
 
 local function horziontal_line(value,p)
+  if value==0 then
+    do return end
+  end
   if value<0 then
     screen.move(8+round(const_line_width*(1-math.abs(value))),p)
   end
-  screen.line_rel(round(const_line_width*math.abs(value)),0)
+  screen.line_rel(math.floor(const_line_width*math.abs(value)),0)
 end
 
 local function draw_dot(j,p)
-  if j==state_parm then
+  screen.stroke()
+  if state_parm==0 then
+    screen.level(15)
+  elseif j==state_parm then
+    screen.level(15)
     screen.move(1,p)
     screen.line_rel(4,0)
+    screen.stroke()
+  else
+    screen.level(1)
   end
 end
 
 function redraw()
   screen.clear()
   -- esoteric display
-  screen.move(1,10)
-  if state_shift==1 then
-    screen.move(3,12)
+  local p=2
+  screen.level(15)
+  if state_has_recorded==0 then
+    screen.level(1)
   end
-  local freezestring=string.format("%d",state_buffer)
-  if state_has_recorded==1 then
-    freezestring=state_buffer..">"
-    if state_lfo_freeze==1 then
-      freezestring=state_buffer.."-"
-    end
-  end
-  screen.text("barcode v0.3 "..freezestring)
+  local level_show=state_level
   if state_recording==1 then
-    screen.move(80,10)
-    screen.text(string.format("rec%d %.2f",state_buffer,state_recordingtime))
+    screen.level(15)
+    level_show=state_recording_level
   end
-  local p=16
   screen.move(8,p)
-  horziontal_line(state_level,p)
+  horziontal_line(level_show,p)
   screen.move(8,p+1)
-  horziontal_line(state_level,p)
-  p=p+4
-  j=1
+  horziontal_line(level_show,p)
+  screen.stroke()
+  p=p+4+3*state_shift
+  j=1+3*state_shift
   for i=1,6 do
-    draw_dot(j,p) screen.move(8,p)
+    draw_dot(j,p)
+    screen.move(8,p)
+    horziontal_line(voice[i].level.calc,p)
+    p=p+1
+    screen.move(8,p)
     horziontal_line(voice[i].level.calc,p)
     p=p+1 j=j+1
     draw_dot(j,p)
@@ -343,13 +388,37 @@ function redraw()
     draw_dot(j,p)
     screen.move(8+util.clamp(const_line_width*(voice[i].ls.calc)/state_buffer_size[state_buffer],0,110),p)
     horziontal_line(util.clamp((voice[i].le.calc-voice[i].ls.calc)/state_buffer_size[state_buffer],0,1))
-    p=p+3 j=j+1
+    p=p+4 j=j+1
   end
   screen.stroke()
+  
+  if state_message~="" then
+    show_message(state_message)
+  end
+  if state_recording==1 then
+    show_message(string.format("rec%d %.2fs",state_buffer,state_recordingtime))
+  end
   screen.update()
 end
 
+--
 -- utility functions
+--
+function show_message(message)
+  screen.level(0)
+  w=string.len(message)*8
+  x=32
+  y=24
+  screen.move(x,y)
+  screen.rect(x,y,w,10)
+  screen.fill()
+  screen.level(15)
+  screen.rect(x,y,w,10)
+  screen.stroke()
+  screen.move(x+w/2,y+7)
+  screen.text_center(message)
+end
+
 function round(num)
   if num>=0 then return math.floor(num+.5)
   else return math.ceil(num-.5) end
