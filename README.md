@@ -24,6 +24,7 @@ this is `barcode` - my second patch for [norns](https://monome.org/docs/norns/).
 - E1 changes output/rec levels
 - E2 dials through parameters
 - E3 adjusts current parameter
+- shift+E3 adjusts freq of lfo
 
 after recording finishes, the corresponding buffer will be played on six different voices. 
 
@@ -31,13 +32,13 @@ each voice has six parameters: level, pan, rate, reverse, start point, and end p
 
 in the ui, the parameters of the voices are represented as six groups of five lines. each group of lines corresponds to one voice. the order of the five lines corresponds to the parameters:
 
-1. level
-2. pan 
-3. rate
-4. reverse
-5. start/end points
+1. level (L)
+2. pan (P)
+3. rate (R)
+4. direction (D)
+5. tape start/end points (T)
 
-you can bias the modulation for any parameter using E2 to move the corresponding line (a parameter for a voice) and then adjusting with E3.
+you can bias the modulation for any parameter using E2 to move the corresponding line (a parameter for a voice) and then adjusting with E3. shift+E3 adjusts the frequency of the lfo for that parameter.
 
 the line at the very top is for the overall level, which can be adjusted with E1. during recording, E1 adjusts the recording level.
 
