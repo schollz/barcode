@@ -17,6 +17,7 @@
 -- E1 changes output/rec levels
 -- E2 dials through parameters
 -- E3 adjusts current parameter
+-- shift+E3 adjusts freq of lfo
 
 state_recording=0
 state_shift=0
@@ -43,7 +44,7 @@ function init()
   for i=1,6 do
     voice[i]={}
     voice[i].level={set=0,adj=0,calc=0,lfo=1,lfo_offset=math.random(0,60),lfo_period=lfo_low_frequency()}
-    voice[i].pan={set=0,adj=0,calc=0,lfo=1,lfo_offset=math.random(0,60),lfo_period=lfo_high_frequency()}
+    voice[i].pan={set=0,adj=0,calc=0,lfo=1,lfo_offset=math.random(0,60),lfo_period=lfo_med_frequency()}
     voice[i].rate={set=0,adj=0,calc=4,lfo=1,lfo_offset=math.random(0,60),lfo_period=0}
     voice[i].sign={set=-1,adj=0,calc=0,lfo=1,lfo_offset=math.random(0,60),lfo_period=lfo_low_frequency()}
     voice[i].ls={set=0,adj=0,calc=0,lfo=1,lfo_offset=math.random(0,60),lfo_period=lfo_low_frequency()}
@@ -57,11 +58,11 @@ function init()
   voice[4].level.set=1.0
   voice[5].level.set=0.1
   voice[6].level.set=0.05
-  voice[1].pan.set=0.3
-  voice[2].pan.set=0.4
-  voice[3].pan.set=0.5
-  voice[4].pan.set=0.6
-  voice[5].pan.set=0.7
+  voice[1].pan.set=0.4
+  voice[2].pan.set=0.5
+  voice[3].pan.set=0.6
+  voice[4].pan.set=0.7
+  voice[5].pan.set=0.8
   voice[6].pan.set=0.8
   voice[1].rate.set=4
   voice[2].rate.set=1
@@ -203,33 +204,55 @@ function enc(n,d)
     j=1
     for i=1,6 do
       if state_parm==j then
-        voice[i].level.adj=util.clamp(voice[i].level.adj+d/100,-2,2)
-        print(string.format("level %d %.2f",i,voice[i].level.adj))
+        if state_shift==1 then
+          voice[i].level.lfo_period=util.clamp(voice[i].level.lfo_period-d/10,1.0,50)
+          print(string.format("voice[i].level.lfo_period %.2f",voice[i].level.lfo_period))
+        else
+          voice[i].level.adj=util.clamp(voice[i].level.adj+d/100,-2,2)
+          print(string.format("level %d %.2f",i,voice[i].level.adj))
+        end
         break
       end
       j=j+1
       if state_parm==j then
-        voice[i].pan.adj=util.clamp(voice[i].pan.adj+d/100,-2,2)
-        print(string.format("pan %d %.2f",i,voice[i].pan.adj))
+        if state_shift==1 then
+          voice[i].pan.lfo_period=util.clamp(voice[i].pan.lfo_period-d/10,1.0,50)
+        else
+          voice[i].pan.adj=util.clamp(voice[i].pan.adj+d/100,-2,2)
+          print(string.format("pan %d %.2f",i,voice[i].pan.adj))
+        end
         break
       end
       j=j+1
       if state_parm==j then
-        voice[i].rate.adj=util.clamp(voice[i].rate.adj+d,-const_num_rates,const_num_rates)
-        print(string.format("rate %d %.2f",i,voice[i].rate.adj))
+        if state_shift==1 then
+          voice[i].rate.lfo_period=util.clamp(voice[i].rate.lfo_period-d/10,1.0,50)
+        else
+          voice[i].rate.adj=util.clamp(voice[i].rate.adj+d,-const_num_rates,const_num_rates)
+          print(string.format("rate %d %.2f",i,voice[i].rate.adj))
+        end
         break
       end
       j=j+1
       if state_parm==j then
-        voice[i].sign.adj=util.clamp(voice[i].sign.adj+d/100,-2,2)
-        print(string.format("sign %d",i))
+        if state_shift==1 then
+          voice[i].sign.lfo_period=util.clamp(voice[i].sign.lfo_period-d/10,1.0,50)
+        else
+          voice[i].sign.adj=util.clamp(voice[i].sign.adj+d/100,-2,2)
+          print(string.format("sign %d",i))
+        end
         break
       end
       j=j+1
       if state_parm==j then
-        voice[i].ls.adj=util.clamp(voice[i].ls.adj-d/100,-state_buffer_size[state_buffer],0)
-        voice[i].le.adj=util.clamp(voice[i].le.adj+d/100,0,state_buffer_size[state_buffer])
-        print(string.format("start/end %d %.2f %.2f",i,voice[i].ls.adj,voice[i].le.adj))
+        if state_shift==1 then
+          voice[i].ls.lfo_period=util.clamp(voice[i].ls.lfo_period-d/10,1.0,50)
+          voice[i].le.lfo_period=util.clamp(voice[i].le.lfo_period-d/10,1.0,50)
+        else
+          voice[i].ls.adj=util.clamp(voice[i].ls.adj-d/100,-state_buffer_size[state_buffer],0)
+          voice[i].le.adj=util.clamp(voice[i].le.adj+d/100,0,state_buffer_size[state_buffer])
+          print(string.format("start/end %d %.2f %.2f",i,voice[i].ls.adj,voice[i].le.adj))
+        end
         break
       end
       j=j+1
@@ -334,8 +357,30 @@ local function draw_dot(j,p)
   elseif j==state_parm then
     screen.level(15)
     screen.move(1,p)
-    screen.line_rel(4,0)
+    if (state_parm-1)%5==0 then
+      screen.text("L")
+    elseif (state_parm-1)%5==1 then
+      screen.text("P")
+    elseif (state_parm-1)%5==2 then
+      screen.text("R")
+    elseif (state_parm-1)%5==3 then
+      screen.text("D")
+    elseif (state_parm-1)%5==4 then
+      screen.text("T")
+    end
+    -- screen.line_rel(4,0)
     screen.stroke()
+    
+    -- screen.level(0)
+    -- screen.rect(108,1,20,10)
+    -- screen.fill()
+    -- screen.level(15)
+    -- screen.rect(108,1,20,10)
+    -- screen.stroke()
+    -- screen.move(109,8)
+    -- if (state_parm-1)%5==0 then
+    --   screen.text(string.format("L %1.2f",voice[1].level.calc))
+    -- end
   else
     screen.level(1)
   end
@@ -359,34 +404,36 @@ function redraw()
   screen.move(8,p+1)
   horziontal_line(level_show,p)
   screen.stroke()
-  p=p+4+3*state_shift
-  j=1+3*state_shift
+  p=p+4
+  j=1
   for i=1,6 do
     draw_dot(j,p)
-    screen.move(8,p)
+    screen.move(8+state_shift*3,p)
     horziontal_line(voice[i].level.calc,p)
     p=p+1
-    screen.move(8,p)
+    screen.move(8+state_shift*3,p)
     horziontal_line(voice[i].level.calc,p)
     p=p+1 j=j+1
     draw_dot(j,p)
     if voice[i].pan.calc<0 then
-      screen.move(8+round(const_line_width*0.5*(1-math.abs(voice[i].pan.calc))),p)
-      screen.line_rel(round(const_line_width*0.5*math.abs(voice[i].pan.calc)),0)
+      screen.move(8+state_shift*3+round(const_line_width*0.5*(1-math.abs(voice[i].pan.calc))),p)
+      screen.line_rel(round(const_line_width*0.5*math.abs(voice[i].pan.calc))-state_shift*3,0)
     else
-      screen.move(8+const_line_width*0.5,p)
-      screen.line_rel(const_line_width*0.5*math.abs(voice[i].pan.calc),0)
+      screen.move(8+const_line_width*0.5+state_shift*3,p)
+      screen.line_rel(const_line_width*0.5*math.abs(voice[i].pan.calc)-state_shift*3,0)
     end
     p=p+1 j=j+1
-    draw_dot(j,p) screen.move(8,p)
+    draw_dot(j,p)
+    screen.move(8+state_shift*3,p)
     horziontal_line(rates[voice[i].rate.calc]/4,p)
     p=p+1 j=j+1
     -- rate sign
-    draw_dot(j,p) screen.move(8,p)
+    draw_dot(j,p)
+    screen.move(8+state_shift*3,p)
     horziontal_line(voice[i].sign.calc*0.5,p)
     p=p+1 j=j+1
     draw_dot(j,p)
-    screen.move(8+util.clamp(const_line_width*(voice[i].ls.calc)/state_buffer_size[state_buffer],0,110),p)
+    screen.move(8+state_shift*3+util.clamp(const_line_width*(voice[i].ls.calc)/state_buffer_size[state_buffer],0,110),p)
     horziontal_line(util.clamp((voice[i].le.calc-voice[i].ls.calc)/state_buffer_size[state_buffer],0,1))
     p=p+4 j=j+1
   end
@@ -406,16 +453,15 @@ end
 --
 function show_message(message)
   screen.level(0)
-  w=string.len(message)*8
-  x=32
-  y=24
-  screen.move(x,y)
-  screen.rect(x,y,w,10)
+  x=64
+  y=28
+  w=string.len(message)*6
+  screen.rect(x-w/2,y,w,10)
   screen.fill()
   screen.level(15)
-  screen.rect(x,y,w,10)
+  screen.rect(x-w/2,y,w,10)
   screen.stroke()
-  screen.move(x+w/2,y+7)
+  screen.move(x,y+7)
   screen.text_center(message)
 end
 
@@ -426,13 +472,13 @@ end
 
 -- define lfos, each returns a period in seconds
 function lfo_high_frequency()
-  return math.random(1,10)/2 -- 200 mHz to 2 Hz
+  return math.random(2,10)
 end
 
 function lfo_med_frequency()
-  return math.random(2,30) -- 33 mHz to 500 mHz
+  return math.random(10,20)
 end
 
 function lfo_low_frequency()
-  return math.random(30,80) -- 12.5 mHz to 33 mHz
+  return math.random(20,40)
 end
