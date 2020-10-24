@@ -1,4 +1,4 @@
--- barcode v0.5
+-- barcode v0.6.0
 -- six-speed six-voice looper
 --
 -- llllllll.co/t/barcode
@@ -41,6 +41,11 @@ const_num_rates=6
 
 function init()
   audio.comp_mix(1) -- turn on compressor
+
+  params:add_option("quantize","quantize",{"no","yes"},1)
+  params:set_action("quantize",update_parameters)
+  params:read(_path.data..'barcode/'.."barcode.pset")
+
   for i=1,6 do
     voice[i]={}
     voice[i].level={set=0,adj=0,calc=0,lfo=1,lfo_offset=math.random(0,60),lfo_period=lfo_low_frequency()}
@@ -130,29 +135,46 @@ function update_lfo()
     state_lfo_time=0
   end
   -- update level modulated by lfos
+  beat_sec = clock.get_beat_sec()
   for i=1,6 do
     for j=1,6 do
       if j==1 then
         if state_lfo_freeze==0 then
-          voice[i].level.lfo=math.abs(calculate_lfo(voice[i].level.lfo_period,voice[i].level.lfo_offset))
+          if params:get("quantize")==1 then 
+            voice[i].level.lfo=math.abs(calculate_lfo(voice[i].level.lfo_period,voice[i].level.lfo_offset))
+          else
+            voice[i].level.lfo=math.abs(calculate_lfo(beat_sec*voice[i].level.lfo_period,beat_sec*voice[i].level.lfo_offset))
+          end
         end
         voice[i].level.calc=util.clamp(voice[i].level.set*voice[i].level.lfo+voice[i].level.adj,0,1)
         softcut.level(i,state_level*voice[i].level.calc)
       elseif j==2 then
         if state_lfo_freeze==0 then
-          voice[i].pan.lfo=calculate_lfo(voice[i].pan.lfo_period,voice[i].pan.lfo_offset)
+          if params:get("quantize")==1 then 
+            voice[i].pan.lfo=calculate_lfo(voice[i].pan.lfo_period,voice[i].pan.lfo_offset)
+          else
+            voice[i].pan.lfo=calculate_lfo(beat_sec*voice[i].pan.lfo_period,beat_sec*voice[i].pan.lfo_offset)
+          end
         end
         voice[i].pan.calc=util.clamp(voice[i].pan.set*voice[i].pan.lfo+voice[i].pan.adj,-1,1)
         softcut.pan(i,voice[i].pan.calc)
       elseif j==3 then
         if state_lfo_freeze==0 then
-          voice[i].rate.lfo=math.abs(calculate_lfo(voice[i].rate.lfo_period,voice[i].rate.lfo_offset))
+          if params:get("quantize")==1 then 
+            voice[i].rate.lfo=math.abs(calculate_lfo(voice[i].rate.lfo_period,voice[i].rate.lfo_offset))
+          else
+            voice[i].rate.lfo=math.abs(calculate_lfo(beat_sec*voice[i].rate.lfo_period,beat_sec*voice[i].rate.lfo_offset))
+          end
         end
         voice[i].rate.calc=util.clamp(round(voice[i].rate.set*voice[i].rate.lfo+voice[i].rate.adj),1,const_num_rates)
       elseif j==4 then
         -- sign lfo oscillates between 0 and 2, since initial sign is -1
         if state_lfo_freeze==0 then
-          voice[i].sign.lfo=1+calculate_lfo(voice[i].sign.lfo_period,voice[i].sign.lfo_offset)
+          if params:get("quantize")==1 then 
+            voice[i].sign.lfo=1+calculate_lfo(voice[i].sign.lfo_period,voice[i].sign.lfo_offset)
+          else
+            voice[i].sign.lfo=1+calculate_lfo(beat_sec*voice[i].sign.lfo_period,beat_sec*voice[i].sign.lfo_offset)
+          end
         end
         voice[i].sign.calc=util.clamp(voice[i].sign.set+voice[i].sign.lfo+voice[i].sign.adj,-1,1)
         if voice[i].sign.calc<0.5 then -- 0.5 is to bias towards reverse
@@ -163,13 +185,21 @@ function update_lfo()
         softcut.rate(i,voice[i].sign.calc*rates[voice[i].rate.calc])
       elseif j==6 then
         if state_lfo_freeze==0 then
-          voice[i].le.lfo=calculate_lfo(voice[i].le.lfo_period,voice[i].le.lfo_offset)*state_buffer_size[state_buffer]/2+2*state_buffer_size[state_buffer]/3
+          if params:get("quantize")==1 then 
+            voice[i].le.lfo=calculate_lfo(voice[i].le.lfo_period,voice[i].le.lfo_offset)*state_buffer_size[state_buffer]/2+2*state_buffer_size[state_buffer]/3
+          else
+            voice[i].le.lfo=calculate_lfo(beat_sec*voice[i].le.lfo_period,beat_sec*voice[i].le.lfo_offset)*state_buffer_size[state_buffer]/2+2*state_buffer_size[state_buffer]/3
+          end
         end
         voice[i].le.calc=util.clamp(voice[i].ls.calc+voice[i].le.lfo+voice[i].le.adj,state_buffer_size[state_buffer]/8,state_buffer_size[state_buffer])
         softcut.loop_end(i,1+voice[i].le.calc)
       elseif j==5 then
         if state_lfo_freeze==0 then
-          voice[i].ls.lfo=calculate_lfo(voice[i].ls.lfo_period,voice[i].ls.lfo_offset)*state_buffer_size[state_buffer]/2+state_buffer_size[state_buffer]/3
+          if params:get("quantize")==1 then 
+            voice[i].ls.lfo=calculate_lfo(voice[i].ls.lfo_period,voice[i].ls.lfo_offset)*state_buffer_size[state_buffer]/2+state_buffer_size[state_buffer]/3
+          else
+            voice[i].ls.lfo=calculate_lfo(voice[i].ls.lfo_period*beat_sec,voice[i].ls.lfo_offset*beat_sec)*state_buffer_size[state_buffer]/2+state_buffer_size[state_buffer]/3            
+          end
         end
         voice[i].ls.calc=util.clamp(voice[i].ls.lfo+voice[i].ls.adj,0,2*state_buffer_size[state_buffer]/3)
         softcut.loop_start(i,1+voice[i].ls.calc)
@@ -481,4 +511,8 @@ end
 
 function lfo_low_frequency()
   return math.random(20,40)
+end
+
+function update_parameters(x)
+  params:write(_path.data..'barcode/'.."barcode.pset")
 end
