@@ -42,8 +42,12 @@ const_num_rates=6
 function init()
   audio.comp_mix(1) -- turn on compressor
 
-  params:add_option("quantize","quantize",{"no","yes"},1)
+  -- parameters
+  params:add_separator("barcode")
+  params:add_option("quantize","quantize",{"off","on"},1)
   params:set_action("quantize",update_parameters)
+  params:add_option("recording","recording",{"off","on"},1)
+  params:set_action("recording",toggle_recording)
   params:read(_path.data..'barcode/'.."barcode.pset")
 
   for i=1,6 do
@@ -326,19 +330,16 @@ function stop_recording()
   softcut.rec(1,0)
 end
 
+
+
 function key(n,z)
   if state_recording==1 and z==1 then
-    stop_recording()
+    params:set("recording",1)
   elseif n==1 then
     state_shift=z
   elseif state_shift==0 and n==3 and z==1 then
     -- K3: toggle recording into current buffer
-    state_recording=1-state_recording
-    if state_recording==1 then
-      start_recording()
-    else
-      stop_recording()
-    end
+    params:set("recording",2)
   elseif n==2 and state_shift==0 then
     -- K2: toggle freeze lfos
     if z==1 then
@@ -515,4 +516,15 @@ end
 
 function update_parameters(x)
   params:write(_path.data..'barcode/'.."barcode.pset")
+end
+
+
+function toggle_recording(x)
+  print(x)
+  state_recording=x-1
+  if state_recording==1 then
+    start_recording()
+  else
+    stop_recording()
+  end
 end
