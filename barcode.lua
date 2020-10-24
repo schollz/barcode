@@ -28,7 +28,6 @@ state_lfo_freeze=0
 state_level=1.0
 state_parm=0
 state_recordingtime=0.0
-state_recording_level=1.0
 state_buffer_size={60,60} -- seconds in the buffer
 state_has_recorded=0
 state_message=""
@@ -48,6 +47,10 @@ function init()
   params:set_action("quantize",update_parameters)
   params:add_option("recording","recording",{"off","on"},1)
   params:set_action("recording",toggle_recording)
+  params:add_taper("pre level","pre level",0,1,1,0)
+  params:set_action("pre level",update_parameters)
+  params:add_taper("rec level","rec level",0,1,1,0)
+  params:set_action("rec level",update_parameters)
   params:read(_path.data..'barcode/'.."barcode.pset")
 
   for i=1,6 do
@@ -101,14 +104,11 @@ function init()
   -- set input rec level: input channel, voice, level
   softcut.level_input_cut(1,1,1.0)
   softcut.level_input_cut(2,1,1.0)
-  -- set voice 1 record level
-  softcut.rec_level(1,1.0)
-  -- set voice 1 pre level
-  softcut.pre_level(1,1.0)
+  softcut.rec_level(1,params:get("rec level"))
+  softcut.pre_level(1,params:get("pre level"))
   -- set record state of voice 1 to 1
   softcut.rec(1,0)
-  softcut.rec_level(1,state_recording_level)
-  
+
   lfo=metro.init()
   lfo.time=const_lfo_inc
   lfo.count=-1
@@ -219,7 +219,7 @@ end
 function enc(n,d)
   if n==1 then
     if state_recording==1 then
-      state_recording_level=util.clamp(state_recording_level+d/100,0,1)
+      params:set("rec level",util.clamp(params:get("rec level")+d/100,0,1))
     else
       state_level=util.clamp(state_level+d/100,0,1)
     end
@@ -313,7 +313,8 @@ function start_recording()
   softcut.position(1,1)
   softcut.loop_start(1,1)
   softcut.loop_end(1,60)
-  softcut.rec_level(1,state_recording_level)
+  softcut.rec_level(1,params:get("rec level"))
+  softcut.pre_level(1,params:get("pre level"))
   state_recordingtime=0.0
   softcut.rec(1,1)
   
@@ -428,7 +429,7 @@ function redraw()
   local level_show=state_level
   if state_recording==1 then
     screen.level(15)
-    level_show=state_recording_level
+    level_show=params:get("rec level")
   end
   screen.move(8,p)
   horziontal_line(level_show,p)
@@ -520,7 +521,6 @@ end
 
 
 function toggle_recording(x)
-  print(x)
   state_recording=x-1
   if state_recording==1 then
     start_recording()
