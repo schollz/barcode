@@ -1,4 +1,4 @@
--- barcode v0.6.1
+-- barcode v0.7.0
 -- six-speed six-voice looper
 --
 -- llllllll.co/t/barcode
@@ -45,7 +45,7 @@ function init()
 
   -- parameters
   params:add_separator("barcode")
-  params:add_option("quantize","lfo bpm sync",{"off","on"},1)
+  params:add_option("quantize","lfo bpm sync.",{"off","on"},1)
   params:set_action("quantize",update_parameters)
   params:add_option("recording","recording",{"off","on"},1)
   params:set_action("recording",toggle_recording)
