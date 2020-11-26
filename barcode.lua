@@ -1,4 +1,4 @@
--- barcode v0.6.0
+-- barcode v0.6.1
 -- six-speed six-voice looper
 --
 -- llllllll.co/t/barcode
@@ -18,6 +18,8 @@
 -- E2 dials through parameters
 -- E3 adjusts current parameter
 -- shift+E3 adjusts freq of lfo
+
+local Formatters=require 'formatters'
 
 state_recording=0
 state_shift=0
@@ -43,7 +45,7 @@ function init()
 
   -- parameters
   params:add_separator("barcode")
-  params:add_option("quantize","quantize",{"off","on"},1)
+  params:add_option("quantize","lfo bpm sync",{"off","on"},1)
   params:set_action("quantize",update_parameters)
   params:add_option("recording","recording",{"off","on"},1)
   params:set_action("recording",toggle_recording)
@@ -51,6 +53,32 @@ function init()
   params:set_action("pre level",update_parameters)
   params:add_taper("rec level","rec level",0,1,1,0)
   params:set_action("rec level",update_parameters)
+  filter_resonance = controlspec.new(0.05,1,'lin',0,0.25,'')
+  filter_freq = controlspec.new(20,20000,'exp',0,20000,'Hz')
+  params:add {
+    type='control',
+    id='filter_frequency',
+    name='filter cutoff',
+    controlspec=filter_freq,
+    formatter=Formatters.format_freq,
+    action=function(value)
+      for i=1,6 do 
+        softcut.post_filter_fc(i,value)
+      end
+    end
+  }
+  params:add {
+    type='control',
+    id='filter_reso',
+    name='filter resonance',
+    controlspec=filter_resonance,
+    action=function(value)
+      for i=1,6 do 
+        softcut.post_filter_rq(i,value)
+      end
+    end
+  }
+
   params:read(_path.data..'barcode/'.."barcode.pset")
 
   for i=1,6 do
@@ -100,6 +128,17 @@ function init()
     softcut.rate_slew_time(i,1)
     softcut.level_slew_time(i,1)
     softcut.pan_slew_time(i,1)
+
+    -- reset filters
+    softcut.post_filter_dry(i,0.0)
+    softcut.post_filter_lp(i,1.0)
+    softcut.post_filter_rq(i,0.3)
+    softcut.post_filter_fc(i,44100)
+
+    softcut.pre_filter_dry(i,1.0)
+    softcut.pre_filter_lp(i,1.0)
+    softcut.pre_filter_rq(i,0.3)
+    softcut.pre_filter_fc(i,44100)
   end
   -- set input rec level: input channel, voice, level
   softcut.level_input_cut(1,1,1.0)
