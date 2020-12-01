@@ -21,13 +21,18 @@
 
 local Formatters=require 'formatters'
 
-local json = nil  
-local share = nil 
+-----------------------
+-- start for sharing --
+-----------------------
+local json=nil
+local share=nil
 if util.file_exists("/home/we/dust/code/share.norns.online") then
   json=include("share.norns.online/lib/json")
   share=include("share.norns.online/lib/share")
 end
-
+-----------------------
+-- end for sharing --
+-----------------------
 
 state = {
   recording=0,
@@ -54,40 +59,44 @@ function init()
   audio.comp_mix(1) -- turn on compressor
 
   -- parameters
-  -----------------------
+-----------------------
   -- start for sharing --
   -----------------------
-  local curtime = os.clock()
-  print(curtime)
-  params:add_group("SHARING",4)
-  local f=io.popen('cd /home/we/dust/data/barcode; ls -d *')
-  shareable = {"-"}
-  for name in f:lines() do
-    if string.match(name,".json") then
-      table.insert(shareable,name:match("^(.+).json$"))
-    end
+  local function script_specific()
   end
-  params:add {
-    type='option',
-    id='choose_shared',
-    name='CHOOSE',
-    options=shareable,
-    action=function(value)
-      print(value)
+  local script_name = "barcode"
+  if json~=nil and share~=nil then
+    local curtime=os.clock()
+    print(curtime)
+    params:add_group("SHARING",4)
+    local f=io.popen('cd /home/we/dust/data/'..script_name..'; ls -d *')
+    shareable={"-"}
+    for name in f:lines() do
+      if string.match(name,".json") and string.match(name,"20") then
+        table.insert(shareable,name:match("^(.+).json$"))
+      end
     end
-  }
-  params:add{ type='binary', name="LOAD", id='load_shared', behavior='momentary', 
-      action=function(v) 
-        choose_shared = params:get("choose_shared")
-        if v==1 and choose_shared > 1 then
-        print("LOADING") 
-        _menu.redraw()
-        params:set("show_msg","LOADING")
-          datename = "/home/we/dust/data/barcode/"..shareable[choose_shared]
+    params:add {
+      type='option',
+      id='choose_shared',
+      name='CHOOSE',
+      options=shareable,
+      action=function(value)
+        print(value)
+      end
+    }
+    params:add{type='binary',name="LOAD",id='load_shared',behavior='momentary',
+      action=function(v)
+        choose_shared=params:get("choose_shared")
+        if v==1 and choose_shared>1 then
+          print("LOADING")
+          _menu.redraw()
+          params:set("show_msg","loading")
+          datename="/home/we/dust/data/"..script_name.."/"..shareable[choose_shared]
           -- update state
-          data = json.decode(share.read_file(datename..".json"))
-          if data ~= nil then 
-            state = data
+          data=json.decode(share.read_file(datename..".json"))
+          if data~=nil then
+            state=data
           end
           -- update softcut
           softcut.buffer_read_stereo(datename..".wav",0,0,-1)
@@ -95,39 +104,43 @@ function init()
           curtime=os.clock() -- prevent bang
           params:read(datename..".pset")
           params:set("choose_shared",choose_shared)
-          params:set("show_msg","LOADED")
+          params:set("show_msg","loaded")
           _menu.redraw()
+          script_specific()
         end
-  end }
-  params:add{ type='binary', name="UPLOAD", id='upload_share', behavior='momentary', 
-    action=function(v) 
-      print(os.clock()-curtime)
-      if v == 1 and os.clock()-curtime > 0.02 then
-        print("UPLOADING") 
-        params:set("show_msg","UPLOADING")
-        _menu.redraw()
-        -- generate a date-based name
-        datename = os.date("%Y%m%d%H%M")
-        -- encode state and upload
-        statejson = json.encode(state)
-        share.write_file("/dev/shm/"..datename..".json",statejson)
-        share.upload("barcode",datename,"/dev/shm/"..datename..".json","/home/we/dust/data/barcode/")
-        os.remove("/dev/shm/"..datename..".json")
-        -- encode parameters and upload
-        params:write("/dev/shm/"..datename..".pset")
-        share.upload("barcode",datename,"/dev/shm/"..datename..".pset","/home/we/dust/data/barcode/")
-        os.remove("/dev/shm/"..datename..".json")
-        -- dump softcut and upload
-        softcut.buffer_write_stereo("/dev/shm/"..datename..".wav",0,-1)
-        share.upload("barcode",datename,"/dev/shm/"..datename..".wav","/home/we/dust/data/barcode/")
-        os.remove("/dev/shm/"..datename..".wav")        
-        params:set("show_msg","UPLOADED")
       end
-  end }
-  params:add_text('show_msg',"MESSAGE","")
-
+    }
+    params:add{type='binary',name="UPLOAD",id='upload_share',behavior='momentary',
+      action=function(v)
+        print(os.clock()-curtime)
+        if v==1 and os.clock()-curtime>0.02 then
+          curtime=os.clock()
+          print("uploading")
+          params:set("show_msg","uploading")
+          _menu.redraw()
+          -- generate a date-based name
+          datename=os.date("%Y%m%d%H%M")
+          -- encode state and upload
+          statejson=json.encode(state)
+          share.write_file("/dev/shm/"..datename..".json",statejson)
+          share.upload(script_name,datename,"/dev/shm/"..datename..".json","/home/we/dust/data/"..script_name.."/")
+          os.remove("/dev/shm/"..datename..".json")
+          -- encode parameters and upload
+          params:write("/dev/shm/"..datename..".pset")
+          share.upload(script_name,datename,"/dev/shm/"..datename..".pset","/home/we/dust/data/"..script_name.."/")
+          os.remove("/dev/shm/"..datename..".json")
+          -- dump softcut and upload
+          softcut.buffer_write_stereo("/dev/shm/"..datename..".wav",0,-1)
+          share.upload(script_name,datename,"/dev/shm/"..datename..".wav","/home/we/dust/data/"..script_name.."/")
+          os.remove("/dev/shm/"..datename..".wav")
+          params:set("show_msg","uploaded")
+        end
+      end
+    }
+    params:add_text('show_msg',"MESSAGE","")
+  end
   --------------------------
-  -- end of sharing stuff -- 
+  -- end of sharing stuff --
   --------------------------
   params:add_separator("barcode")
   params:add_option("quantize","lfo bpm sync.",{"off","on"},1)
