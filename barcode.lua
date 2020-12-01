@@ -488,7 +488,7 @@ function stop_recording()
   state.recording=0
   state.has_recorded=1
   softcut.rate_slew_time(1,params:get("rate slew time"))
-   -- change the buffer size (only if its bigger)
+  -- change the buffer size (only if its bigger)
   if state.buffer_size[state.buffer]==60 or state.recordingtime>state.buffer_size[state.buffer] then
     state.buffer_size[state.buffer]=state.recordingtime
   end
@@ -680,7 +680,7 @@ function lfo_low_frequency()
 end
 
 function update_parameters(x)
-  for i=1,6 do 
+  for i=1,6 do
     softcut.rate_slew_time(i,params:get("rate slew time"))
     softcut.level_slew_time(i,params:get("level slew time"))
     softcut.pan_slew_time(i,params:get("pan slew time"))
