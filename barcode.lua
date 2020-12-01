@@ -169,6 +169,12 @@ function init()
   params:set_action("quantize",update_parameters)
   params:add_option("recording","recording",{"off","on"},1)
   params:set_action("recording",toggle_recording)
+  params:add_control("rate slew time","rate slew time",controlspec.new(0,30,"lin",0.01,1,"s",0.01/30))
+  params:set_action("rate slew time",update_parameters)
+  params:add_control("pan slew time","pan slew time",controlspec.new(0,30,"lin",0.01,1,"s",0.01/30))
+  params:set_action("pan slew time",update_parameters)
+  params:add_control("level slew time","level slew time",controlspec.new(0,30,"lin",0.01,1,"s",0.01/30))
+  params:set_action("level slew time",update_parameters)
   params:add_taper("pre level","pre level",0,1,1,0)
   params:set_action("pre level",update_parameters)
   params:add_taper("rec level","rec level",0,1,1,0)
@@ -244,9 +250,9 @@ function init()
     softcut.loop(i,1)
     softcut.position(i,1)
     softcut.play(i,1)
-    softcut.rate_slew_time(i,1)
-    softcut.level_slew_time(i,1)
-    softcut.pan_slew_time(i,1)
+    softcut.rate_slew_time(i,params:get("rate slew time"))
+    softcut.level_slew_time(i,params:get("level slew time"))
+    softcut.pan_slew_time(i,params:get("pan slew time"))
 
     -- reset filters
     softcut.post_filter_dry(i,0.0)
@@ -481,8 +487,8 @@ end
 function stop_recording()
   state.recording=0
   state.has_recorded=1
-  softcut.rate_slew_time(1,1)
-  -- change the buffer size (only if its bigger)
+  softcut.rate_slew_time(1,params:get("rate slew time"))
+   -- change the buffer size (only if its bigger)
   if state.buffer_size[state.buffer]==60 or state.recordingtime>state.buffer_size[state.buffer] then
     state.buffer_size[state.buffer]=state.recordingtime
   end
@@ -674,6 +680,11 @@ function lfo_low_frequency()
 end
 
 function update_parameters(x)
+  for i=1,6 do 
+    softcut.rate_slew_time(i,params:get("rate slew time"))
+    softcut.level_slew_time(i,params:get("level slew time"))
+    softcut.pan_slew_time(i,params:get("pan slew time"))
+  end
   params:write(_path.data..'barcode/'.."barcode.pset")
 end
 
