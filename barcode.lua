@@ -34,7 +34,7 @@ end
 -- end for sharing --
 -----------------------
 
-state = {
+state={
   recording=0,
   shift=0,
   buffer=1,
@@ -59,12 +59,12 @@ function init()
   audio.comp_mix(1) -- turn on compressor
 
   -- parameters
------------------------
+  -----------------------
   -- start for sharing --
   -----------------------
   local function script_specific()
   end
-  local script_name = "barcode"
+  local script_name="barcode"
   if json~=nil and share~=nil then
     local curtime=os.clock()
     print(curtime)
@@ -151,8 +151,8 @@ function init()
   params:set_action("pre level",update_parameters)
   params:add_taper("rec level","rec level",0,1,1,0)
   params:set_action("rec level",update_parameters)
-  filter_resonance = controlspec.new(0.05,1,'lin',0,0.25,'')
-  filter_freq = controlspec.new(20,20000,'exp',0,20000,'Hz')
+  filter_resonance=controlspec.new(0.05,1,'lin',0,0.25,'')
+  filter_freq=controlspec.new(20,20000,'exp',0,20000,'Hz')
   params:add {
     type='control',
     id='filter_frequency',
@@ -160,7 +160,7 @@ function init()
     controlspec=filter_freq,
     formatter=Formatters.format_freq,
     action=function(value)
-      for i=1,6 do 
+      for i=1,6 do
         softcut.post_filter_fc(i,value)
       end
     end
@@ -171,7 +171,7 @@ function init()
     name='filter resonance',
     controlspec=filter_resonance,
     action=function(value)
-      for i=1,6 do 
+      for i=1,6 do
         softcut.post_filter_rq(i,value)
       end
     end
@@ -212,7 +212,7 @@ function init()
     voice[i].pan.calc=voice[i].pan.set
     voice[i].rate.calc=voice[i].rate.set
   end
-  
+
   -- send audio input to softcut input
   audio.level_adc_cut(1)
   softcut.buffer_clear()
@@ -266,7 +266,7 @@ function update_lfo()
     redraw()
     do return end
   end
-  
+
   -- update lfo counter
   if state.lfo_freeze==0 then
     state.lfo_time=state.lfo_time+const_lfo_inc
@@ -275,12 +275,12 @@ function update_lfo()
     state.lfo_time=0
   end
   -- update level modulated by lfos
-  beat_sec = clock.get_beat_sec()
+  beat_sec=clock.get_beat_sec()
   for i=1,6 do
     for j=1,6 do
       if j==1 then
         if state.lfo_freeze==0 then
-          if params:get("quantize")==1 then 
+          if params:get("quantize")==1 then
             voice[i].level.lfo=math.abs(calculate_lfo(voice[i].level.lfo_period,voice[i].level.lfo_offset))
           else
             voice[i].level.lfo=math.abs(calculate_lfo(beat_sec*voice[i].level.lfo_period,beat_sec*voice[i].level.lfo_offset))
@@ -290,7 +290,7 @@ function update_lfo()
         softcut.level(i,state.level*voice[i].level.calc)
       elseif j==2 then
         if state.lfo_freeze==0 then
-          if params:get("quantize")==1 then 
+          if params:get("quantize")==1 then
             voice[i].pan.lfo=calculate_lfo(voice[i].pan.lfo_period,voice[i].pan.lfo_offset)
           else
             voice[i].pan.lfo=calculate_lfo(beat_sec*voice[i].pan.lfo_period,beat_sec*voice[i].pan.lfo_offset)
@@ -300,7 +300,7 @@ function update_lfo()
         softcut.pan(i,voice[i].pan.calc)
       elseif j==3 then
         if state.lfo_freeze==0 then
-          if params:get("quantize")==1 then 
+          if params:get("quantize")==1 then
             voice[i].rate.lfo=math.abs(calculate_lfo(voice[i].rate.lfo_period,voice[i].rate.lfo_offset))
           else
             voice[i].rate.lfo=math.abs(calculate_lfo(beat_sec*voice[i].rate.lfo_period,beat_sec*voice[i].rate.lfo_offset))
@@ -310,7 +310,7 @@ function update_lfo()
       elseif j==4 then
         -- sign lfo oscillates between 0 and 2, since initial sign is -1
         if state.lfo_freeze==0 then
-          if params:get("quantize")==1 then 
+          if params:get("quantize")==1 then
             voice[i].sign.lfo=1+calculate_lfo(voice[i].sign.lfo_period,voice[i].sign.lfo_offset)
           else
             voice[i].sign.lfo=1+calculate_lfo(beat_sec*voice[i].sign.lfo_period,beat_sec*voice[i].sign.lfo_offset)
@@ -325,7 +325,7 @@ function update_lfo()
         softcut.rate(i,voice[i].sign.calc*rates[voice[i].rate.calc])
       elseif j==6 then
         if state.lfo_freeze==0 then
-          if params:get("quantize")==1 then 
+          if params:get("quantize")==1 then
             voice[i].le.lfo=calculate_lfo(voice[i].le.lfo_period,voice[i].le.lfo_offset)*state.buffer_size[state.buffer]/2+2*state.buffer_size[state.buffer]/3
           else
             voice[i].le.lfo=calculate_lfo(beat_sec*voice[i].le.lfo_period,beat_sec*voice[i].le.lfo_offset)*state.buffer_size[state.buffer]/2+2*state.buffer_size[state.buffer]/3
@@ -335,10 +335,10 @@ function update_lfo()
         softcut.loop_end(i,1+voice[i].le.calc)
       elseif j==5 then
         if state.lfo_freeze==0 then
-          if params:get("quantize")==1 then 
+          if params:get("quantize")==1 then
             voice[i].ls.lfo=calculate_lfo(voice[i].ls.lfo_period,voice[i].ls.lfo_offset)*state.buffer_size[state.buffer]/2+state.buffer_size[state.buffer]/3
           else
-            voice[i].ls.lfo=calculate_lfo(voice[i].ls.lfo_period*beat_sec,voice[i].ls.lfo_offset*beat_sec)*state.buffer_size[state.buffer]/2+state.buffer_size[state.buffer]/3            
+            voice[i].ls.lfo=calculate_lfo(voice[i].ls.lfo_period*beat_sec,voice[i].ls.lfo_offset*beat_sec)*state.buffer_size[state.buffer]/2+state.buffer_size[state.buffer]/3
           end
         end
         voice[i].ls.calc=util.clamp(voice[i].ls.lfo+voice[i].ls.adj,0,2*state.buffer_size[state.buffer]/3)
@@ -453,7 +453,7 @@ function start_recording()
   softcut.pre_level(1,params:get("pre level"))
   state.recordingtime=0.0
   softcut.rec(1,1)
-  
+
 end
 
 function stop_recording()
@@ -538,7 +538,7 @@ local function draw_dot(j,p)
     end
     -- screen.line_rel(4,0)
     screen.stroke()
-    
+
     -- screen.level(0)
     -- screen.rect(108,1,20,10)
     -- screen.fill()
@@ -606,7 +606,7 @@ function redraw()
     p=p+4 j=j+1
   end
   screen.stroke()
-  
+
   if state.message~="" then
     show_message(state.message)
   end
