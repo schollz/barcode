@@ -664,11 +664,9 @@ function backup_save(savename)
 end
 
 function backup_load(savename)
-  local ch,samples,samplerate=audio.file_info(fname)
-  local duration=samples/48000.0
   params:read(DATA_DIR..savename.."/parameters.pset")
   for i=1,2 do
-    softcut.buffer_read_mono(DATA_DIR..savename.."/"..i..".wav",0,0,duration,i)
+    softcut.buffer_read_mono(DATA_DIR..savename.."/"..i..".wav",0,0,-1,i)
   end
 end
 
