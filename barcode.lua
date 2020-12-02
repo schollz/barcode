@@ -248,7 +248,7 @@ function init()
     softcut.enable(i,1)
     softcut.buffer(i,1)
     softcut.loop(i,1)
-    softcut.position(i,1)
+    softcut.position(i,0)
     softcut.play(i,1)
     softcut.rate_slew_time(i,params:get("rate slew time"))
     softcut.level_slew_time(i,params:get("level slew time"))
@@ -370,7 +370,7 @@ function update_lfo()
           end
         end
         voice[i].ls.calc=util.clamp(voice[i].ls.lfo+voice[i].ls.adj,0,2*state.buffer_size[state.buffer]/3)
-        softcut.loop_start(i,1+voice[i].ls.calc)
+        softcut.loop_start(i,voice[i].ls.calc)
         -- if i==1 then
         --   print(voice[i].le.calc,voice[i].ls.calc)
         -- end
@@ -461,7 +461,7 @@ end
 local function update_buffer()
   for i=1,6 do
     softcut.buffer(i,state.buffer)
-    softcut.position(i,1)
+    softcut.position(i,0)
   end
   -- reset lfo
   state.lfo_time=0
@@ -474,8 +474,8 @@ function start_recording()
   softcut.rate_slew_time(1,0)
   softcut.level(1,state.level)
   softcut.rate(1,1)
-  softcut.position(1,1)
-  softcut.loop_start(1,1)
+  softcut.position(1,0)
+  softcut.loop_start(1,0)
   softcut.loop_end(1,60)
   softcut.rec_level(1,params:get("rec level"))
   softcut.pre_level(1,params:get("pre level"))
@@ -642,6 +642,34 @@ function redraw()
     show_message(string.format("rec%d %.2fs",state.buffer,state.recordingtime))
   end
   screen.update()
+end
+
+--
+-- saving and loading
+--
+function backup_save(savename)
+  -- create if doesn't exist
+  os.execute("mkdir -p "..DATA_DIR.."names")
+  os.execute("mkdir -p "..DATA_DIR..savename)
+  os.execute("cat "..savename.." > "..DATA_DIR.."names/"..savename)
+
+  -- save buffers
+  for i=1,2 do
+    dur = state.buffer_size[i]
+    softcut.buffer_write_mono(DATA_DIR..savename.."/"..i..".wav",0,dur,i)
+  end
+
+  -- save the parameter set
+  params:write(DATA_DIR..savename.."/parameters.pset")
+end
+
+function backup_load(savename)
+  local ch,samples,samplerate=audio.file_info(fname)
+  local duration=samples/48000.0
+  params:read(DATA_DIR..savename.."/parameters.pset")
+  for i=1,2 do
+    softcut.buffer_read_mono(DATA_DIR..savename.."/"..i..".wav",0,0,duration,i)
+  end
 end
 
 --
