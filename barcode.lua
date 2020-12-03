@@ -22,17 +22,6 @@
 local Formatters=require 'formatters'
 
 -----------------------
--- start for sharing --
------------------------
-local json=nil
-local share=nil
-if util.file_exists("/home/we/dust/data/norns.online/username") then
-  json=include("norns.online/lib/json")
-  share=include("norns.online/lib/share")
-end
------------------------
--- end for sharing --
------------------------
 
 state={
   recording=0,
@@ -55,116 +44,37 @@ const_lfo_inc=0.25 -- seconds between updates
 const_line_width=112
 const_num_rates=6
 
+DATA_DIR=_path.data.."barcode/"
+
+
 function init()
+  os.execute("mkdir -p "..DATA_DIR)
+  os.execute("mkdir -p "..DATA_DIR.."names/")
+  setup_sharing("barcode")
   audio.comp_mix(1) -- turn on compressor
 
   -- parameters
-  -----------------------
-  -- start for sharing --
-  -----------------------
-  local function script_specific()
-  end
-  local script_name="barcode"
-  local save_dir="/home/we/dust/data/"..script_name.."/share/"
-  if json~=nil and share~=nil then
-    local curtime=os.clock()
-    print(curtime)
-    params:add_group("SHARE",5)
-    local f=io.popen('cd '..save_dir..'; ls -d *')
-    shareable={"-"}
-    for name in f:lines() do
-      if string.match(name,".json") then
-        table.insert(shareable,name:match("^(.+).json$"))
-      end
-    end
-    params:add {
-      type='option',
-      id='choose_shared',
-      name='CHOOSE',
-      options=shareable,
-      action=function(value)
-        print(value)
-      end
-    }
-    params:add{type='binary',name="LOAD",id='load_shared',behavior='momentary',
-      action=function(v)
-        choose_shared=params:get("choose_shared")
-        if v==1 and choose_shared>1 then
-          print("LOADING")
-          _menu.redraw()
-          params:set("show_msg","loading")
-          dataname=save_dir..shareable[choose_shared]
-
-          -- update state
-          data=json.decode(share.read_file(dataname..".json"))
-          if data~=nil then
-            state=data
-          end
-          -- update softcut
-          softcut.buffer_read_stereo(dataname..".wav",0,0,-1)
-
-          -- update parameters
-          curtime=os.clock() -- prevent bang
-          params:read(dataname..".pset")
-          params:set("choose_shared",choose_shared)
-          params:set("show_msg","loaded")
-
-          _menu.redraw()
-
-          -- run script specific stuff
-          script_specific()
-        end
-      end
-    }
-    params:add_text('upload_name',"UPLOAD NAME","")
-    params:add{type='binary',name="UPLOAD",id='upload_share',behavior='momentary',
-      action=function(v)
-        print(os.clock()-curtime)
-        if v==1 and os.clock()-curtime>0.02 then
-          curtime=os.clock()
-          print("UPLOADING")
-          params:set("show_msg","uploading")
-          _menu.redraw()
-
-          -- generate a date-based name
-          dataname=os.date("%Y%m%d%H%M")
-          print('params:get("upload_name"): '..params:get("upload_name"))
-          if params:get("upload_name")~="" then
-            dataname=params:get("upload_name")
-          end
-
-          -- encode state and upload
-          statejson=json.encode(state) -- <- MAKE SURE TO CHANGE YOUR STATE
-          share.write_file("/dev/shm/"..dataname..".json",statejson)
-          share.upload(script_name,dataname,"/dev/shm/"..dataname..".json",save_dir)
-          os.remove("/dev/shm/"..dataname..".json")
-
-          -- encode parameters and upload
-          params:write("/dev/shm/"..dataname..".pset")
-          share.upload(script_name,dataname,"/dev/shm/"..dataname..".pset",save_dir)
-          os.remove("/dev/shm/"..dataname..".json")
-
-          -- dump softcut and upload
-          softcut.buffer_write_stereo("/dev/shm/"..dataname..".wav",0,-1)
-          share.upload(script_name,dataname,"/dev/shm/"..dataname..".wav",save_dir)
-          os.remove("/dev/shm/"..dataname..".wav")
-
-          -- show message
-          params:set("show_msg","uploaded")
-        end
-      end
-    }
-    params:add_text('show_msg',"MESSAGE","")
-  end
-  clock.run(function()
-    -- reset just in case parameters get loaded
-    clock.sleep(1)
-    params:set("show_msg","")
-  end)
-  --------------------------
-  -- end of sharing stuff --
-  --------------------------
   params:add_separator("barcode")
+
+  params:add_group("save/load",3)
+  params:add_text('save_name',"save as...","")
+  params:set_action("save_name",function(x)
+      print(x)
+      backup_save(x)
+      params:set("save_message","saved.")
+  end)
+  name_folder = "/home/we/dust/data/barcode/names/"
+  params:add_file("load_name","load",name_folder)
+  params:set_action("load_name",function(x)
+    if #x<=#name_folder then do return end end 
+    print("load_name: "..x)
+      pathname,filename,ext = string.match(x,"(.-)([^\\/]-%.?([^%.\\/]*))$")
+      print("loading "..filename)
+      backup_load(filename)
+      params:set("save_message","loaded.")
+  end)
+  params:add_text('save_message',">","")
+
   params:add_option("quantize","lfo bpm sync.",{"off","on"},1)
   params:set_action("quantize",update_parameters)
   params:add_option("recording","recording",{"off","on"},1)
@@ -204,7 +114,6 @@ function init()
       end
     end
   }
-  params:read(_path.data..'barcode/'.."barcode.pset")
 
   for i=1,6 do
     voice[i]={}
@@ -645,32 +554,6 @@ function redraw()
 end
 
 --
--- saving and loading
---
-function backup_save(savename)
-  -- create if doesn't exist
-  os.execute("mkdir -p "..DATA_DIR.."names")
-  os.execute("mkdir -p "..DATA_DIR..savename)
-  os.execute("cat "..savename.." > "..DATA_DIR.."names/"..savename)
-
-  -- save buffers
-  for i=1,2 do
-    dur = state.buffer_size[i]
-    softcut.buffer_write_mono(DATA_DIR..savename.."/"..i..".wav",0,dur,i)
-  end
-
-  -- save the parameter set
-  params:write(DATA_DIR..savename.."/parameters.pset")
-end
-
-function backup_load(savename)
-  params:read(DATA_DIR..savename.."/parameters.pset")
-  for i=1,2 do
-    softcut.buffer_read_mono(DATA_DIR..savename.."/"..i..".wav",0,0,-1,i)
-  end
-end
-
---
 -- utility functions
 --
 function show_message(message)
@@ -722,4 +605,125 @@ function toggle_recording(x)
   else
     stop_recording()
   end
+end
+
+
+--
+-- saving and loading
+--
+function backup_save(savename)
+  -- create if doesn't exist
+  savedir = DATA_DIR..savename.."/"
+  os.execute("mkdir -p "..savedir)
+  os.execute("echo "..savename.." > "..DATA_DIR.."names/"..savename)
+
+  -- save buffers
+  for i=1,2 do
+    dur = state.buffer_size[i]
+    if dur > 0 and dur < 60 then 
+      print(i,dur)
+      softcut.buffer_write_mono(savedir..i..".wav",0,dur,i)
+    end
+  end
+
+  -- save tables
+  tab.save(voice,savedir.."voice.txt")
+  tab.save(state,savedir.."state.txt")
+
+  -- save the parameter set
+  params:write(savedir.."/parameters.pset")
+end
+
+function backup_load(savename)
+  for i=1,2 do
+    if util.file_exists(DATA_DIR..savename.."/"..i..".wav") then 
+      softcut.buffer_read_mono(DATA_DIR..savename.."/"..i..".wav",0,0,-1,1,i)
+    end
+  end
+
+  voice = tab.load(DATA_DIR..savename.."/voice.txt")
+  state = tab.load(DATA_DIR..savename.."/state.txt")
+
+  params:read(DATA_DIR..savename.."/parameters.pset")
+end
+
+
+function setup_sharing(script_name)
+  if not util.file_exists("/home/we/dust/code/norns.online") then
+    print("need to donwload norns.online")
+    do return end 
+  end
+
+  local share=include("norns.online/lib/share")
+
+  -- start uploader with name of your script
+  local uploader = share:new{script_name=script_name}
+  if uploader == nil then 
+    print("uploader failed, no username?")
+    do return end 
+  end
+
+  -- add parameters
+  params:add_group("SHARE",4)
+
+  -- uploader (CHANGE THIS TO FIT WHAT YOU NEED)
+  -- select a save
+  local name_dir =DATA_DIR.."names/"
+  params:add_file("share_upload","upload",name_dir)
+  params:set_action("share_upload",function(x)
+    print(x)
+    if #x <= #name_dir  then do return end end
+    print("uploading "..x)
+
+    -- choose data name
+    dataname = share.trim_prefix(x,name_dir)
+
+    params:set("share_message","uploading...")
+    _menu.redraw()
+
+    -- upload each buffer
+    for i=1,2 do 
+      pathtofile = DATA_DIR..dataname.."/"..i..".wav"
+      if util.file_exists(pathtofile) then 
+        target = DATA_DIR..uploader.upload_username.."-"..dataname.."/"..i..".wav"
+        uploader:upload{dataname=dataname,pathtofile=pathtofile,target=target}
+      end
+    end
+
+    otherfiles={"parameters.pset","voice.txt","state.txt"}
+    for _, f in ipairs(otherfiles) do
+      pathtofile = DATA_DIR..dataname.."/"..f
+      target =  DATA_DIR..uploader.upload_username.."-"..dataname.."/"..f
+      uploader:upload{dataname=dataname,pathtofile=pathtofile,target=target}
+    end
+
+    -- upload name file
+    pathtofile = DATA_DIR.."names/"..dataname
+    target =  DATA_DIR.."names/"..uploader.upload_username.."-"..dataname
+    uploader:upload{dataname=dataname,pathtofile=pathtofile,target=target}
+
+    -- goodbye
+    params:set("share_message","uploaded.")
+  end)
+
+  -- downloader
+  download_dir = share.get_virtual_directory(script_name)
+  params:add_file("share_download","download",download_dir)
+  params:set_action("share_download",function(x)
+    if #x <= #download_dir then do return end end
+    print("downloading!")
+    params:set("share_message","please wait...")
+    _menu.redraw()
+    msg=share.download_from_virtual_directory(x)
+    params:set("share_message",msg)
+  end)  
+  params:add{ type='binary', name='refresh directory',id='share_refresh', behavior='momentary', action=function(v) 
+    print("updating directory")
+    params:set("share_message","refreshing directory.")
+    _menu.redraw()
+     share.make_virtual_directory()
+    params:set("share_message","directory updated.")
+   end 
+   }
+  params:add_text('share_message',">","")
 end
