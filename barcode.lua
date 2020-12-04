@@ -686,7 +686,11 @@ function setup_sharing(script_name)
       pathtofile = DATA_DIR..dataname.."/"..i..".wav"
       if util.file_exists(pathtofile) then 
         target = DATA_DIR..uploader.upload_username.."-"..dataname.."/"..i..".wav"
-        uploader:upload{dataname=dataname,pathtofile=pathtofile,target=target}
+        msg = uploader:upload{dataname=dataname,pathtofile=pathtofile,target=target}
+        if not string.match(msg,"OK") then 
+          params:set("share_message",msg)
+          do return end 
+        end        
       end
     end
 
