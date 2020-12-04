@@ -58,20 +58,35 @@ function init()
 
   params:add_group("save/load",3)
   params:add_text('save_name',"save as...","")
-  params:set_action("save_name",function(x)
-      print(x)
-      backup_save(x)
-      params:set("save_message","saved.")
+  params:set_action("save_name",function(y)
+    -- prevent banging
+    local x=y
+    params:set("save_name","")
+    if x=="" then 
+      do return end 
+    end
+    -- save
+    print(x)
+    backup_save(x)
+    params:set("save_message","saved as "..x)
   end)
-  name_folder = "/home/we/dust/data/barcode/names/"
+  print("DATA_DIR "..DATA_DIR)
+  local name_folder=DATA_DIR.."names/"
+  print("name_folder: "..name_folder)
   params:add_file("load_name","load",name_folder)
-  params:set_action("load_name",function(x)
-    if #x<=#name_folder then do return end end 
+  params:set_action("load_name",function(y)
+    -- prevent banging
+    local x=y
+    params:set("load_name",name_folder)
+    if #x<=#name_folder then 
+      do return end 
+    end
+    -- load
     print("load_name: "..x)
-      pathname,filename,ext = string.match(x,"(.-)([^\\/]-%.?([^%.\\/]*))$")
-      print("loading "..filename)
-      backup_load(filename)
-      params:set("save_message","loaded.")
+    pathname,filename,ext=string.match(x,"(.-)([^\\/]-%.?([^%.\\/]*))$")
+    print("loading "..filename)
+    backup_load(filename)
+    params:set("save_message","loaded "..filename..".")
   end)
   params:add_text('save_message',">","")
 
@@ -649,18 +664,18 @@ end
 
 
 function setup_sharing(script_name)
-  if not util.file_exists("/home/we/dust/code/norns.online") then
+  if not util.file_exists(_path.code.."norns.online") then
     print("need to donwload norns.online")
-    do return end 
+    do return end
   end
 
   local share=include("norns.online/lib/share")
 
   -- start uploader with name of your script
-  local uploader = share:new{script_name=script_name}
-  if uploader == nil then 
+  local uploader=share:new{script_name=script_name}
+  if uploader==nil then
     print("uploader failed, no username?")
-    do return end 
+    do return end
   end
 
   -- add parameters
@@ -668,18 +683,22 @@ function setup_sharing(script_name)
 
   -- uploader (CHANGE THIS TO FIT WHAT YOU NEED)
   -- select a save
-  local name_dir =DATA_DIR.."names/"
-  params:add_file("share_upload","upload",name_dir)
-  params:set_action("share_upload",function(x)
-    print(x)
-    if #x <= #name_dir  then do return end end
-    print("uploading "..x)
+  local names_dir=DATA_DIR.."names/"
+  params:add_file("share_upload","upload",names_dir)
+  params:set_action("share_upload",function(y)
+    -- prevent banging
+    local x=y
+    params:set("share_download",names_dir) 
+    if #x<=#names_dir then 
+      do return end 
+    end
 
     -- choose data name
-    dataname = share.trim_prefix(x,name_dir)
-
+    -- (here dataname is from the selector)
+    local dataname=share.trim_prefix(x,DATA_DIR.."names/")
     params:set("share_message","uploading...")
     _menu.redraw()
+    print("uploading "..x.." as "..dataname)
 
     -- upload each buffer
     for i=1,2 do 
@@ -707,23 +726,32 @@ function setup_sharing(script_name)
   end)
 
   -- downloader
-  download_dir = share.get_virtual_directory(script_name)
+  download_dir=share.get_virtual_directory(script_name)
   params:add_file("share_download","download",download_dir)
-  params:set_action("share_download",function(x)
-    if #x <= #download_dir then do return end end
+  params:set_action("share_download",function(y)
+    -- prevent banging
+    local x=y
+    params:set("share_download",download_dir) 
+    if #x<=#download_dir then 
+      do return end 
+    end
+
+    -- download
     print("downloading!")
     params:set("share_message","please wait...")
     _menu.redraw()
-    msg=share.download_from_virtual_directory(x)
+    local msg=share.download_from_virtual_directory(x)
     params:set("share_message",msg)
-  end)  
-  params:add{ type='binary', name='refresh directory',id='share_refresh', behavior='momentary', action=function(v) 
+  end)
+  params:add{type='binary',name='refresh directory',id='share_refresh',behavior='momentary',action=function(v)
     print("updating directory")
     params:set("share_message","refreshing directory.")
     _menu.redraw()
-     share.make_virtual_directory()
+    share.make_virtual_directory()
     params:set("share_message","directory updated.")
-   end 
-   }
-  params:add_text('share_message',">","")
+  end
+  }
+params:add_text('share_message',">","")
 end
+
+
