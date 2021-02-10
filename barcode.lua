@@ -56,20 +56,22 @@ function init()
   -- parameters
   params:add_separator("barcode")
 
-  params:add_group("save/load",3)
-  params:add_text('save_name',"save as...","")
-  params:set_action("save_name",function(y)
-    -- prevent banging
-    local x=y
-    params:set("save_name","")
-    if x=="" then 
-      do return end 
+  local blocksave = false
+  params:add_group("save/load",4)
+  params:add_text('save_name',"save name","")
+  params:add{type='binary',name="save!",id='do_save',behavior='trigger',
+    action=function(v)
+      -- prevent banging
+      local x=params:get("save_name")
+      if x=="" or blocksave then 
+        do return end 
+      end
+      -- save
+      print(x)
+      backup_save(x)
+      params:set("save_message","saved as "..x)
     end
-    -- save
-    print(x)
-    backup_save(x)
-    params:set("save_message","saved as "..x)
-  end)
+  }
   print("DATA_DIR "..DATA_DIR)
   local name_folder=DATA_DIR.."names/"
   print("name_folder: "..name_folder)
@@ -85,7 +87,10 @@ function init()
     print("load_name: "..x)
     pathname,filename,ext=string.match(x,"(.-)([^\\/]-%.?([^%.\\/]*))$")
     print("loading "..filename)
+    blocksave = true
     backup_load(filename)
+    blocksave = false
+    params:set("save_name",filename)
     params:set("save_message","loaded "..filename..".")
   end)
   params:add_text('save_message',">","")
