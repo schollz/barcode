@@ -43,7 +43,7 @@ rates={0.125,0.25,0.5,1,2,4}
 const_lfo_inc=0.25 -- seconds between updates
 const_line_width=112
 const_num_rates=6
-
+prevent_save=false
 DATA_DIR=_path.data.."barcode/"
 
 
@@ -56,20 +56,19 @@ function init()
   -- parameters
   params:add_separator("barcode")
 
-  params:add_group("save/load",3)
+  params:add_group("save/load",4)
   params:add_text('save_name',"save as...","")
-  params:set_action("save_name",function(y)
-    -- prevent banging
-    local x=y
-    params:set("save_name","")
-    if x=="" then 
-      do return end 
-    end
-    -- save
-    print(x)
-    backup_save(x)
-    params:set("save_message","saved as "..x)
-  end)
+  params:add{type='binary',name="save!",id="save it",behavior='momentary',function(val)
+	local x=params:get("save_name")
+   	if x=="" or prevent_save or val==0 then 
+      	  do return end 
+    	end
+    	-- save
+    	print(x)
+    	backup_save(x)
+    	params:set("save_message","saved as "..x)
+      end
+  }
   print("DATA_DIR "..DATA_DIR)
   local name_folder=DATA_DIR.."names/"
   print("name_folder: "..name_folder)
@@ -87,6 +86,7 @@ function init()
     print("loading "..filename)
     backup_load(filename)
     params:set("save_message","loaded "..filename..".")
+    params:set("save_name",filename)
   end)
   params:add_text('save_message',">","")
 
@@ -659,7 +659,10 @@ function backup_load(savename)
   voice = tab.load(DATA_DIR..savename.."/voice.txt")
   state = tab.load(DATA_DIR..savename.."/state.txt")
 
+
+  prevent_save=true
   params:read(DATA_DIR..savename.."/parameters.pset")
+  prevent_save=false
 end
 
 
