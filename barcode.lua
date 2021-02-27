@@ -1,4 +1,4 @@
--- barcode v0.8.0
+-- barcode v0.8.1
 -- six-speed six-voice looper
 --
 -- llllllll.co/t/barcode
@@ -43,7 +43,7 @@ rates={0.125,0.25,0.5,1,2,4}
 const_lfo_inc=0.25 -- seconds between updates
 const_line_width=112
 const_num_rates=6
-
+prevent_saveload=false
 DATA_DIR=_path.data.."barcode/"
 
 
@@ -56,27 +56,29 @@ function init()
   -- parameters
   params:add_separator("barcode")
 
-  params:add_group("save/load",3)
-  params:add_text('save_name',"save as...","")
-  params:set_action("save_name",function(y)
-    -- prevent banging
-    local x=y
-    params:set("save_name","")
-    if x=="" then 
-      do return end 
-    end
-    -- save
-    print(x)
-    backup_save(x)
-    params:set("save_message","saved as "..x)
-  end)
+  params:add_group("save/load",4)
+  params:add_text('save_name',"filename","")
+  params:add{type='binary',name="save current",id="save it",behavior='momentary',action=function(val)
+     if prevent_saveload then do return end end
+	   local x=params:get("save_name")
+   	  if x=="" or val==0 then 
+      	  do return end 
+    	end
+    	-- save
+    	print(x)
+    	backup_save(x)
+    	params:set("save_message","saved as "..x)
+      end
+  }
   print("DATA_DIR "..DATA_DIR)
   local name_folder=DATA_DIR.."names/"
   print("name_folder: "..name_folder)
-  params:add_file("load_name","load",name_folder)
+  params:add_file("load_name","load saved",name_folder)
   params:set_action("load_name",function(y)
+    if prevent_saveload then do return end end
     -- prevent banging
     local x=y
+    print("load_name "..x)
     params:set("load_name",name_folder)
     if #x<=#name_folder then 
       do return end 
@@ -87,6 +89,7 @@ function init()
     print("loading "..filename)
     backup_load(filename)
     params:set("save_message","loaded "..filename..".")
+    params:set("save_name",filename)
   end)
   params:add_text('save_message',">","")
 
@@ -627,6 +630,7 @@ end
 -- saving and loading
 --
 function backup_save(savename)
+  prevent_saveload = true
   -- create if doesn't exist
   savedir = DATA_DIR..savename.."/"
   os.execute("mkdir -p "..savedir)
@@ -647,9 +651,11 @@ function backup_save(savename)
 
   -- save the parameter set
   params:write(savedir.."/parameters.pset")
+  prevent_saveload = false
 end
 
 function backup_load(savename)
+  prevent_saveload = true
   for i=1,2 do
     if util.file_exists(DATA_DIR..savename.."/"..i..".wav") then 
       softcut.buffer_read_mono(DATA_DIR..savename.."/"..i..".wav",0,0,-1,1,i)
@@ -660,6 +666,8 @@ function backup_load(savename)
   state = tab.load(DATA_DIR..savename.."/state.txt")
 
   params:read(DATA_DIR..savename.."/parameters.pset")
+  params:set("save it",0)
+  prevent_saveload=false
 end
 
 
