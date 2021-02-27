@@ -43,7 +43,7 @@ rates={0.125,0.25,0.5,1,2,4}
 const_lfo_inc=0.25 -- seconds between updates
 const_line_width=112
 const_num_rates=6
-prevent_save=false
+prevent_saveload=false
 DATA_DIR=_path.data.."barcode/"
 
 
@@ -57,10 +57,11 @@ function init()
   params:add_separator("barcode")
 
   params:add_group("save/load",4)
-  params:add_text('save_name',"save as...","")
-  params:add{type='binary',name="save!",id="save it",behavior='momentary',function(val)
-	local x=params:get("save_name")
-   	if x=="" or prevent_save or val==0 then 
+  params:add_text('save_name',"filename","")
+  params:add{type='binary',name="save current",id="save it",behavior='momentary',action=function(val)
+     if prevent_saveload then do return end end
+	   local x=params:get("save_name")
+   	  if x=="" or val==0 then 
       	  do return end 
     	end
     	-- save
@@ -72,10 +73,12 @@ function init()
   print("DATA_DIR "..DATA_DIR)
   local name_folder=DATA_DIR.."names/"
   print("name_folder: "..name_folder)
-  params:add_file("load_name","load",name_folder)
+  params:add_file("load_name","load saved",name_folder)
   params:set_action("load_name",function(y)
+    if prevent_saveload then do return end end
     -- prevent banging
     local x=y
+    print("load_name "..x)
     params:set("load_name",name_folder)
     if #x<=#name_folder then 
       do return end 
@@ -627,6 +630,7 @@ end
 -- saving and loading
 --
 function backup_save(savename)
+  prevent_saveload = true
   -- create if doesn't exist
   savedir = DATA_DIR..savename.."/"
   os.execute("mkdir -p "..savedir)
@@ -647,9 +651,11 @@ function backup_save(savename)
 
   -- save the parameter set
   params:write(savedir.."/parameters.pset")
+  prevent_saveload = false
 end
 
 function backup_load(savename)
+  prevent_saveload = true
   for i=1,2 do
     if util.file_exists(DATA_DIR..savename.."/"..i..".wav") then 
       softcut.buffer_read_mono(DATA_DIR..savename.."/"..i..".wav",0,0,-1,1,i)
@@ -659,10 +665,9 @@ function backup_load(savename)
   voice = tab.load(DATA_DIR..savename.."/voice.txt")
   state = tab.load(DATA_DIR..savename.."/state.txt")
 
-
-  prevent_save=true
   params:read(DATA_DIR..savename.."/parameters.pset")
-  prevent_save=false
+  params:set("save it",0)
+  prevent_saveload=false
 end
 
 
