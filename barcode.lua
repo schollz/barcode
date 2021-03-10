@@ -92,7 +92,10 @@ function init()
     params:set("save_name",filename)
   end)
   params:add_text('save_message',">","")
-
+  params:add_file('import1', 'buffer 1 sample')
+  params:set_action('import1', function(f) import(f, 1) end)
+  params:add_file('import2', 'buffer 2 sample')
+  params:set_action('import2', function(f) import(f, 2) end)
   params:add_option("quantize","lfo bpm sync.",{"off","on"},1)
   params:set_action("quantize",update_parameters)
   params:add_option("recording","recording",{"off","on"},1)
@@ -625,6 +628,15 @@ function toggle_recording(x)
   end
 end
 
+function import(f, ch)
+  if util.file_exists(f) then
+    softcut.buffer_clear_channel(ch)
+    softcut.buffer_read_mono(f,0,0,60,1,ch)
+    local _, samples, rate = audio.file_info(f)
+    local duration = math.min((samples/rate), 60)
+    state.buffer_size[ch]=duration
+  end
+end
 
 --
 -- saving and loading
