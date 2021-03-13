@@ -20,11 +20,12 @@
 -- shift+E3 adjusts freq of lfo
 
 local Formatters=require 'formatters'
-
+local fileselect=require 'fileselect'
 -----------------------
 
 state={
   recording=0,
+  selecting_file=false,
   shift=0,
   buffer=1,
   lfo_time=0,
@@ -95,6 +96,7 @@ function init()
 
   params:add_option("quantize","lfo bpm sync.",{"off","on"},1)
   params:set_action("quantize",update_parameters)
+  params:add_option("audio source","audio source",{"audio in","file"},1)
   params:add_option("recording","recording",{"off","on"},1)
   params:set_action("recording",toggle_recording)
   params:add_control("rate slew time","rate slew time",controlspec.new(0,30,"lin",0.01,1,"s",0.01/30))
@@ -422,7 +424,14 @@ function stop_recording()
   softcut.rec(1,0)
 end
 
-
+function fileselect_callback(f)
+   if util.file_exists(f) then
+      softcut.buffer_read_mono(f,0,0,-1,1,state.buffer)
+      local _, samples, rate = audio.file_info(f)
+      state.buffer_size[state.buffer]=(samples/rate)
+   end
+   state.selecting_file = false
+end
 
 function key(n,z)
   if state.recording==1 and z==1 then
@@ -430,8 +439,13 @@ function key(n,z)
   elseif n==1 then
     state.shift=z
   elseif state.shift==0 and n==3 and z==1 then
-    -- K3: toggle recording into current buffer
-    params:set("recording",2)
+     if params:get("audio source")==1 then
+     -- K3: toggle recording into current buffer
+	params:set("recording",2)
+     else
+	state.selecting_file=true
+	fileselect.enter("/home/we/dust/audio", fileselect_callback)
+     end
   elseif n==2 and state.shift==0 then
     -- K2: toggle freeze lfos
     if z==1 then
@@ -511,6 +525,7 @@ end
 
 function redraw()
   screen.clear()
+  if state.selecting_file then do return end end
   -- esoteric display
   local p=2
   screen.level(15)
