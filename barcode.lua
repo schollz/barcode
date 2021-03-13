@@ -426,6 +426,7 @@ end
 
 function fileselect_callback(f)
    if util.file_exists(f) then
+      softcut.buffer_clear_channel(state.buffer)
       softcut.buffer_read_mono(f,0,0,-1,1,state.buffer)
       local _, samples, rate = audio.file_info(f)
       state.buffer_size[state.buffer]=(samples/rate)
