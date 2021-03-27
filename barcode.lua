@@ -1,4 +1,4 @@
--- barcode v0.9.0
+-- barcode v0.10.0
 -- six-speed six-voice looper
 --
 -- llllllll.co/t/barcode
