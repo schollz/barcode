@@ -98,6 +98,7 @@ function init()
   params:set_action('import2', function(f) import(f, 2) end)
   params:add_option("quantize","lfo bpm sync.",{"off","on"},1)
   params:set_action("quantize",update_parameters)
+  params:add_option("reverse", "reverse", {"off", "on"},2)
   params:add_option("recording","recording",{"off","on"},1)
   params:set_action("recording",toggle_recording)
   params:add_control("rate slew time","rate slew time",controlspec.new(0,30,"lin",0.01,1,"s",0.01/30))
@@ -279,6 +280,9 @@ function update_lfo()
           voice[i].sign.calc=-1
         else
           voice[i].sign.calc=1
+        end
+        if params:get("reverse") == 1 then
+          voice[i].sign.calc = math.abs(voice[i].sign.calc)
         end
         softcut.rate(i,voice[i].sign.calc*rates[voice[i].rate.calc])
       elseif j==6 then
