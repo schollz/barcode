@@ -1,4 +1,4 @@
--- barcode v0.10.0
+-- barcode v0.11.0
 -- six-speed six-voice looper
 --
 -- llllllll.co/t/barcode
@@ -99,8 +99,18 @@ function init()
   params:add_option("quantize","lfo bpm sync.",{"off","on"},1)
   params:set_action("quantize",update_parameters)
   params:add_option("reverse", "reverse", {"off", "on"},2)
-  params:add_option("recording","recording",{"off","on"},1)
-  params:set_action("recording",toggle_recording)
+  params:add{type='binary',name='recording',id='recording',behavior='toggle',allow_pmap=true, action=function(v)
+      toggle_recording(v)
+    end
+  }
+  params:add{type='binary',name='clear buffer',id='clear',behavior='momentary',allow_pmap=true, action=function(v)
+      if prevent_saveload then do return end end
+      if v==1 then
+        print("clearing")
+        clear_recording()
+      end
+    end
+  }
   params:add_control("rate slew time","rate slew time",controlspec.new(0,30,"lin",0.01,1,"s",0.01/30))
   params:set_action("rate slew time",update_parameters)
   params:add_control("pan slew time","pan slew time",controlspec.new(0,30,"lin",0.01,1,"s",0.01/30))
@@ -433,12 +443,12 @@ end
 
 function key(n,z)
   if state.recording==1 and z==1 then
-    params:set("recording",1)
+    params:set("recording",0)
   elseif n==1 then
     state.shift=z
   elseif state.shift==0 and n==3 and z==1 then
     -- K3: toggle recording into current buffer
-    params:set("recording",2)
+    params:set("recording",1)
   elseif n==2 and state.shift==0 then
     -- K2: toggle freeze lfos
     if z==1 then
@@ -457,17 +467,21 @@ function key(n,z)
     end)
   elseif state.shift==1 and n==3 and z==1 then
     -- shift+K3: clear current buffer
-    state.has_recorded=0
-    softcut.buffer_clear_channel(state.buffer)
-    clock.run(function()
-      state.message="cleared"
-      redraw()
-      clock.sleep(1)
-      state.message=""
-      redraw()
-    end)
+    clear_recording()
   end
   redraw()
+end
+
+function clear_recording()
+  state.has_recorded=0
+  softcut.buffer_clear_channel(state.buffer)
+  clock.run(function()
+    state.message="cleared"
+    redraw()
+    clock.sleep(1)
+    state.message=""
+    redraw()
+  end)
 end
 
 local function horziontal_line(value,p)
@@ -624,7 +638,7 @@ end
 
 
 function toggle_recording(x)
-  state.recording=x-1
+  state.recording=x
   if state.recording==1 then
     start_recording()
   else
