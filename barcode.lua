@@ -99,8 +99,16 @@ function init()
   params:add_option("quantize","lfo bpm sync.",{"off","on"},1)
   params:set_action("quantize",update_parameters)
   params:add_option("reverse", "reverse", {"off", "on"},2)
-  params:add{type='binary',name='recording',id='recording',behavior='toggle',action=function(v)
+  params:add{type='binary',name='recording',id='recording',behavior='toggle',allow_pmap=true, action=function(v)
       toggle_recording(v)
+    end
+  }
+  params:add{type='binary',name='clear buffer',id='clear',behavior='momentary',allow_pmap=true, action=function(v)
+      if prevent_saveload then do return end end
+      if v==1 then
+        print("clearing")
+        clear_recording()
+      end
     end
   }
   params:add_control("rate slew time","rate slew time",controlspec.new(0,30,"lin",0.01,1,"s",0.01/30))
@@ -459,17 +467,21 @@ function key(n,z)
     end)
   elseif state.shift==1 and n==3 and z==1 then
     -- shift+K3: clear current buffer
-    state.has_recorded=0
-    softcut.buffer_clear_channel(state.buffer)
-    clock.run(function()
-      state.message="cleared"
-      redraw()
-      clock.sleep(1)
-      state.message=""
-      redraw()
-    end)
+    clear_recording()
   end
   redraw()
+end
+
+function clear_recording()
+  state.has_recorded=0
+  softcut.buffer_clear_channel(state.buffer)
+  clock.run(function()
+    state.message="cleared"
+    redraw()
+    clock.sleep(1)
+    state.message=""
+    redraw()
+  end)
 end
 
 local function horziontal_line(value,p)
