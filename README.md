@@ -20,7 +20,7 @@ this is `barcode` - my second patch for [norns](https://monome.org/docs/norns/).
 - K3 starts recording
 - any key stops recording
 - shift+K2 switches buffer
-- shift+K3 clears
+- shift+K3 undoes then clears
 - E1 changes output/rec levels
 - E2 dials through parameters
 - E3 adjusts current parameter
