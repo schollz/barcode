@@ -34,6 +34,7 @@ state={
   parm=0,
   recordingtime=0.0,
   buffer_size={60,60},
+  buffer_size_last={60,60},
   has_recorded=0,
   message="",
   undoed=true,
@@ -416,6 +417,7 @@ function undo()
   if state.recording==0 then
     softcut.buffer_copy_mono(state.buffer,state.buffer,62,0,60,0,0,0)
     state.undoed=true
+    state.buffer_size[state.buffer]=state.buffer_size_last[state.buffer]
     clock.run(function()
       state.message=" undo last recording "
       redraw()
@@ -452,6 +454,7 @@ function stop_recording()
   state.has_recorded=1
   softcut.rate_slew_time(1,params:get("rate slew time"))
   -- change the buffer size (only if its bigger)
+  state.buffer_size_last[state.buffer]=state.buffer_size[state.buffer]
   if state.buffer_size[state.buffer]==60 or state.recordingtime>state.buffer_size[state.buffer] then
     state.buffer_size[state.buffer]=state.recordingtime
   end
