@@ -60,166 +60,166 @@ function init()
   params:add_group("save/load",4)
   params:add_text('save_name',"filename","")
   params:add{type='binary',name="save current",id="save it",behavior='momentary',action=function(val)
-     if prevent_saveload then do return end end
-	   local x=params:get("save_name")
-   	  if x=="" or val==0 then 
-      	  do return end 
-    	end
-    	-- save
-    	print(x)
-    	backup_save(x)
-    	params:set("save_message","saved as "..x)
-      end
-  }
-  print("DATA_DIR "..DATA_DIR)
-  local name_folder=DATA_DIR.."names/"
-  print("name_folder: "..name_folder)
-  params:add_file("load_name","load saved",name_folder)
-  params:set_action("load_name",function(y)
     if prevent_saveload then do return end end
-    -- prevent banging
-    local x=y
-    print("load_name "..x)
-    params:set("load_name",name_folder)
-    if #x<=#name_folder then 
-      do return end 
+local x=params:get("save_name")
+    if x=="" or val==0 then
+      do return end
     end
-    -- load
-    print("load_name: "..x)
-    pathname,filename,ext=string.match(x,"(.-)([^\\/]-%.?([^%.\\/]*))$")
-    print("loading "..filename)
-    backup_load(filename)
-    params:set("save_message","loaded "..filename..".")
-    params:set("save_name",filename)
-  end)
-  params:add_text('save_message',">","")
-  params:add_file('import1', 'buffer 1 sample')
-  params:set_action('import1', function(f) import(f, 1) end)
-  params:add_file('import2', 'buffer 2 sample')
-  params:set_action('import2', function(f) import(f, 2) end)
-  params:add_option("quantize","lfo bpm sync.",{"off","on"},1)
-  params:set_action("quantize",update_parameters)
-  params:add_option("reverse", "reverse", {"off", "on"},2)
-  params:add{type='binary',name='recording',id='recording',behavior='toggle',allow_pmap=true, action=function(v)
-      toggle_recording(v)
-    end
-  }
-  params:add{type='binary',name='clear buffer',id='clear',behavior='momentary',allow_pmap=true, action=function(v)
-      if prevent_saveload then do return end end
-      if v==1 then
-        print("clearing")
-        clear_recording()
-      end
-    end
-  }
-  params:add_control("rate slew time","rate slew time",controlspec.new(0,30,"lin",0.01,1,"s",0.01/30))
-  params:set_action("rate slew time",update_parameters)
-  params:add_control("pan slew time","pan slew time",controlspec.new(0,30,"lin",0.01,1,"s",0.01/30))
-  params:set_action("pan slew time",update_parameters)
-  params:add_control("level slew time","level slew time",controlspec.new(0,30,"lin",0.01,1,"s",0.01/30))
-  params:set_action("level slew time",update_parameters)
-  params:add_taper("pre level","pre level",0,1,1,0)
-  params:set_action("pre level",update_parameters)
-  params:add_taper("rec level","rec level",0,1,1,0)
-  params:set_action("rec level",update_parameters)
-  filter_resonance=controlspec.new(0.05,1,'lin',0,0.25,'')
-  filter_freq=controlspec.new(20,20000,'exp',0,20000,'Hz')
-  params:add {
-    type='control',
-    id='filter_frequency',
-    name='filter cutoff',
-    controlspec=filter_freq,
-    formatter=Formatters.format_freq,
-    action=function(value)
-      for i=1,6 do
-        softcut.post_filter_fc(i,value)
-      end
-    end
-  }
-  params:add {
-    type='control',
-    id='filter_reso',
-    name='filter resonance',
-    controlspec=filter_resonance,
-    action=function(value)
-      for i=1,6 do
-        softcut.post_filter_rq(i,value)
-      end
-    end
-  }
-
-  for i=1,6 do
-    voice[i]={}
-    voice[i].level={set=0,adj=0,calc=0,lfo=1,lfo_offset=math.random(0,60),lfo_period=lfo_low_frequency()}
-    voice[i].pan={set=0,adj=0,calc=0,lfo=1,lfo_offset=math.random(0,60),lfo_period=lfo_med_frequency()}
-    voice[i].rate={set=0,adj=0,calc=4,lfo=1,lfo_offset=math.random(0,60),lfo_period=0}
-    voice[i].sign={set=-1,adj=0,calc=0,lfo=1,lfo_offset=math.random(0,60),lfo_period=lfo_low_frequency()}
-    voice[i].ls={set=0,adj=0,calc=0,lfo=1,lfo_offset=math.random(0,60),lfo_period=lfo_low_frequency()}
-    voice[i].le={set=state.buffer_size[state.buffer],adj=0,calc=0,lfo=1,lfo_offset=math.random(0,60),lfo_period=lfo_low_frequency()}
+    -- save
+    print(x)
+    backup_save(x)
+    params:set("save_message","saved as "..x)
   end
-  -- initialize voice 1 = standard
-  -- intitialize voice 2-6 = decreasing in volume, increasing in pitch
-  voice[1].level.set=0.6
-  voice[2].level.set=0.6
-  voice[3].level.set=1.0
-  voice[4].level.set=1.0
-  voice[5].level.set=0.1
-  voice[6].level.set=0.05
-  voice[1].pan.set=0.4
-  voice[2].pan.set=0.5
-  voice[3].pan.set=0.6
-  voice[4].pan.set=0.7
-  voice[5].pan.set=0.8
-  voice[6].pan.set=0.8
-  voice[1].rate.set=4
-  voice[2].rate.set=1
-  voice[3].rate.set=2
-  voice[4].rate.set=3
-  voice[5].rate.set=5
-  voice[6].rate.set=6
-  for i=1,6 do
-    voice[i].level.calc=voice[i].level.set
-    voice[i].pan.calc=voice[i].pan.set
-    voice[i].rate.calc=voice[i].rate.set
+}
+print("DATA_DIR "..DATA_DIR)
+local name_folder=DATA_DIR.."names/"
+print("name_folder: "..name_folder)
+params:add_file("load_name","load saved",name_folder)
+params:set_action("load_name",function(y)
+  if prevent_saveload then do return end end
+-- prevent banging
+  local x=y
+  print("load_name "..x)
+  params:set("load_name",name_folder)
+  if #x<=#name_folder then
+    do return end
   end
-
-  -- send audio input to softcut input
-  audio.level_adc_cut(1)
-  softcut.buffer_clear()
-  for i=1,6 do
-    softcut.enable(i,1)
-    softcut.buffer(i,1)
-    softcut.loop(i,1)
-    softcut.position(i,0)
-    softcut.play(i,1)
-    softcut.rate_slew_time(i,params:get("rate slew time"))
-    softcut.level_slew_time(i,params:get("level slew time"))
-    softcut.pan_slew_time(i,params:get("pan slew time"))
-
-    -- reset filters
-    softcut.post_filter_dry(i,0.0)
-    softcut.post_filter_lp(i,1.0)
-    softcut.post_filter_rq(i,0.3)
-    softcut.post_filter_fc(i,20000)
-
-    softcut.pre_filter_dry(i,1.0)
-    softcut.pre_filter_lp(i,1.0)
-    softcut.pre_filter_rq(i,0.3)
-    softcut.pre_filter_fc(i,20000)
+  -- load
+  print("load_name: "..x)
+  pathname,filename,ext=string.match(x,"(.-)([^\\/]-%.?([^%.\\/]*))$")
+  print("loading "..filename)
+  backup_load(filename)
+  params:set("save_message","loaded "..filename..".")
+  params:set("save_name",filename)
+end)
+params:add_text('save_message',">","")
+params:add_file('import1','buffer 1 sample')
+params:set_action('import1',function(f) import(f,1) end)
+params:add_file('import2','buffer 2 sample')
+params:set_action('import2',function(f) import(f,2) end)
+params:add_option("quantize","lfo bpm sync.",{"off","on"},1)
+params:set_action("quantize",update_parameters)
+params:add_option("reverse","reverse",{"off","on"},2)
+params:add{type='binary',name='recording',id='recording',behavior='toggle',allow_pmap=true,action=function(v)
+  toggle_recording(v)
+end
+}
+params:add{type='binary',name='clear buffer',id='clear',behavior='momentary',allow_pmap=true,action=function(v)
+  if prevent_saveload then do return end end
+if v==1 then
+    print("clearing")
+    clear_recording()
   end
-  -- set input rec level: input channel, voice, level
-  softcut.level_input_cut(1,1,1.0)
-  softcut.level_input_cut(2,1,1.0)
-  softcut.rec_level(1,params:get("rec level"))
-  softcut.pre_level(1,params:get("pre level"))
-  -- set record state of voice 1 to 1
-  softcut.rec(1,0)
+end
+}
+params:add_control("rate slew time","rate slew time",controlspec.new(0,30,"lin",0.01,1,"s",0.01/30))
+params:set_action("rate slew time",update_parameters)
+params:add_control("pan slew time","pan slew time",controlspec.new(0,30,"lin",0.01,1,"s",0.01/30))
+params:set_action("pan slew time",update_parameters)
+params:add_control("level slew time","level slew time",controlspec.new(0,30,"lin",0.01,1,"s",0.01/30))
+params:set_action("level slew time",update_parameters)
+params:add_taper("pre level","pre level",0,1,1,0)
+params:set_action("pre level",update_parameters)
+params:add_taper("rec level","rec level",0,1,1,0)
+params:set_action("rec level",update_parameters)
+filter_resonance=controlspec.new(0.05,1,'lin',0,0.25,'')
+filter_freq=controlspec.new(20,20000,'exp',0,20000,'Hz')
+params:add {
+  type='control',
+  id='filter_frequency',
+  name='filter cutoff',
+  controlspec=filter_freq,
+  formatter=Formatters.format_freq,
+  action=function(value)
+    for i=1,6 do
+      softcut.post_filter_fc(i,value)
+    end
+  end
+}
+params:add {
+  type='control',
+  id='filter_reso',
+  name='filter resonance',
+  controlspec=filter_resonance,
+  action=function(value)
+    for i=1,6 do
+      softcut.post_filter_rq(i,value)
+    end
+  end
+}
 
-  lfo=metro.init()
-  lfo.time=const_lfo_inc
-  lfo.count=-1
-  lfo.event=update_lfo
-  lfo:start()
+for i=1,6 do
+  voice[i]={}
+  voice[i].level={set=0,adj=0,calc=0,lfo=1,lfo_offset=math.random(0,60),lfo_period=lfo_low_frequency()}
+  voice[i].pan={set=0,adj=0,calc=0,lfo=1,lfo_offset=math.random(0,60),lfo_period=lfo_med_frequency()}
+  voice[i].rate={set=0,adj=0,calc=4,lfo=1,lfo_offset=math.random(0,60),lfo_period=0}
+  voice[i].sign={set=-1,adj=0,calc=0,lfo=1,lfo_offset=math.random(0,60),lfo_period=lfo_low_frequency()}
+  voice[i].ls={set=0,adj=0,calc=0,lfo=1,lfo_offset=math.random(0,60),lfo_period=lfo_low_frequency()}
+  voice[i].le={set=state.buffer_size[state.buffer],adj=0,calc=0,lfo=1,lfo_offset=math.random(0,60),lfo_period=lfo_low_frequency()}
+end
+-- initialize voice 1 = standard
+-- intitialize voice 2-6 = decreasing in volume, increasing in pitch
+voice[1].level.set=0.6
+voice[2].level.set=0.6
+voice[3].level.set=1.0
+voice[4].level.set=1.0
+voice[5].level.set=0.1
+voice[6].level.set=0.05
+voice[1].pan.set=0.4
+voice[2].pan.set=0.5
+voice[3].pan.set=0.6
+voice[4].pan.set=0.7
+voice[5].pan.set=0.8
+voice[6].pan.set=0.8
+voice[1].rate.set=4
+voice[2].rate.set=1
+voice[3].rate.set=2
+voice[4].rate.set=3
+voice[5].rate.set=5
+voice[6].rate.set=6
+for i=1,6 do
+  voice[i].level.calc=voice[i].level.set
+  voice[i].pan.calc=voice[i].pan.set
+  voice[i].rate.calc=voice[i].rate.set
+end
+
+-- send audio input to softcut input
+audio.level_adc_cut(1)
+softcut.buffer_clear()
+for i=1,6 do
+  softcut.enable(i,1)
+  softcut.buffer(i,1)
+  softcut.loop(i,1)
+  softcut.position(i,0)
+  softcut.play(i,1)
+  softcut.rate_slew_time(i,params:get("rate slew time"))
+  softcut.level_slew_time(i,params:get("level slew time"))
+  softcut.pan_slew_time(i,params:get("pan slew time"))
+
+  -- reset filters
+  softcut.post_filter_dry(i,0.0)
+  softcut.post_filter_lp(i,1.0)
+  softcut.post_filter_rq(i,0.3)
+  softcut.post_filter_fc(i,20000)
+
+  softcut.pre_filter_dry(i,1.0)
+  softcut.pre_filter_lp(i,1.0)
+  softcut.pre_filter_rq(i,0.3)
+  softcut.pre_filter_fc(i,20000)
+end
+-- set input rec level: input channel, voice, level
+softcut.level_input_cut(1,1,1.0)
+softcut.level_input_cut(2,1,1.0)
+softcut.rec_level(1,params:get("rec level"))
+softcut.pre_level(1,params:get("pre level"))
+-- set record state of voice 1 to 1
+softcut.rec(1,0)
+
+lfo=metro.init()
+lfo.time=const_lfo_inc
+lfo.count=-1
+lfo.event=update_lfo
+lfo:start()
 end
 
 function calculate_lfo(period,offset)
@@ -292,8 +292,8 @@ function update_lfo()
         else
           voice[i].sign.calc=1
         end
-        if params:get("reverse") == 1 then
-          voice[i].sign.calc = math.abs(voice[i].sign.calc)
+        if params:get("reverse")==1 then
+          voice[i].sign.calc=math.abs(voice[i].sign.calc)
         end
         softcut.rate(i,voice[i].sign.calc*rates[voice[i].rate.calc])
       elseif j==6 then
@@ -414,10 +414,10 @@ end
 
 function undo()
   if state.recording==0 then
-  softcut.buffer_copy_mono(state.buffer,state.buffer,62,0,60,0,0,0)
-  state.undoed=true
-   clock.run(function()
-      state.message=" undo last recording "                                                          
+    softcut.buffer_copy_mono(state.buffer,state.buffer,62,0,60,0,0,0)
+    state.undoed=true
+    clock.run(function()
+      state.message=" undo last recording "
       redraw()
       clock.sleep(1)
       state.message=""
@@ -486,10 +486,10 @@ function key(n,z)
     end)
   elseif state.shift==1 and n==3 and z==1 then
     -- shift+K3: clear current buffer
-    if state.undoed then 
-       clear_recording()
+    if state.undoed then
+      clear_recording()
     else
-	undo()
+      undo()
     end
   end
   redraw()
@@ -669,12 +669,12 @@ function toggle_recording(x)
   end
 end
 
-function import(f, ch)
+function import(f,ch)
   if util.file_exists(f) then
     softcut.buffer_clear_channel(ch)
     softcut.buffer_read_mono(f,0,0,60,1,ch)
-    local _, samples, rate = audio.file_info(f)
-    local duration = math.min((samples/rate), 60)
+    local _,samples,rate=audio.file_info(f)
+    local duration=math.min((samples/rate),60)
     state.buffer_size[ch]=duration
   end
 end
@@ -683,16 +683,16 @@ end
 -- saving and loading
 --
 function backup_save(savename)
-  prevent_saveload = true
+  prevent_saveload=true
   -- create if doesn't exist
-  savedir = DATA_DIR..savename.."/"
+  savedir=DATA_DIR..savename.."/"
   os.execute("mkdir -p "..savedir)
   os.execute("echo "..savename.." > "..DATA_DIR.."names/"..savename)
 
   -- save buffers
   for i=1,2 do
-    dur = state.buffer_size[i]
-    if dur > 0 and dur < 60 then 
+    dur=state.buffer_size[i]
+    if dur>0 and dur<60 then
       print(i,dur)
       softcut.buffer_write_mono(savedir..i..".wav",0,dur,i)
     end
@@ -704,19 +704,19 @@ function backup_save(savename)
 
   -- save the parameter set
   params:write(savedir.."/parameters.pset")
-  prevent_saveload = false
+  prevent_saveload=false
 end
 
 function backup_load(savename)
-  prevent_saveload = true
+  prevent_saveload=true
   for i=1,2 do
-    if util.file_exists(DATA_DIR..savename.."/"..i..".wav") then 
+    if util.file_exists(DATA_DIR..savename.."/"..i..".wav") then
       softcut.buffer_read_mono(DATA_DIR..savename.."/"..i..".wav",0,0,-1,1,i)
     end
   end
 
-  voice = tab.load(DATA_DIR..savename.."/voice.txt")
-  state = tab.load(DATA_DIR..savename.."/state.txt")
+  voice=tab.load(DATA_DIR..savename.."/voice.txt")
+  state=tab.load(DATA_DIR..savename.."/state.txt")
 
   params:read(DATA_DIR..savename.."/parameters.pset")
   params:set("save it",0)
@@ -749,9 +749,9 @@ function setup_sharing(script_name)
   params:set_action("share_upload",function(y)
     -- prevent banging
     local x=y
-    params:set("share_download",names_dir) 
-    if #x<=#names_dir then 
-      do return end 
+    params:set("share_download",names_dir)
+    if #x<=#names_dir then
+      do return end
     end
 
     -- choose data name
@@ -762,28 +762,28 @@ function setup_sharing(script_name)
     print("uploading "..x.." as "..dataname)
 
     -- upload each buffer
-    for i=1,2 do 
-      pathtofile = DATA_DIR..dataname.."/"..i..".wav"
-      if util.file_exists(pathtofile) then 
-        target = DATA_DIR..uploader.upload_username.."-"..dataname.."/"..i..".wav"
-        msg = uploader:upload{dataname=dataname,pathtofile=pathtofile,target=target}
-        if not string.match(msg,"OK") then 
+    for i=1,2 do
+      pathtofile=DATA_DIR..dataname.."/"..i..".wav"
+      if util.file_exists(pathtofile) then
+        target=DATA_DIR..uploader.upload_username.."-"..dataname.."/"..i..".wav"
+        msg=uploader:upload{dataname=dataname,pathtofile=pathtofile,target=target}
+        if not string.match(msg,"OK") then
           params:set("share_message",msg)
-          do return end 
-        end        
+          do return end
+        end
       end
     end
 
     otherfiles={"parameters.pset","voice.txt","state.txt"}
-    for _, f in ipairs(otherfiles) do
-      pathtofile = DATA_DIR..dataname.."/"..f
-      target =  DATA_DIR..uploader.upload_username.."-"..dataname.."/"..f
+    for _,f in ipairs(otherfiles) do
+      pathtofile=DATA_DIR..dataname.."/"..f
+      target=DATA_DIR..uploader.upload_username.."-"..dataname.."/"..f
       uploader:upload{dataname=dataname,pathtofile=pathtofile,target=target}
     end
 
     -- upload name file
-    pathtofile = DATA_DIR.."names/"..dataname
-    target =  DATA_DIR.."names/"..uploader.upload_username.."-"..dataname
+    pathtofile=DATA_DIR.."names/"..dataname
+    target=DATA_DIR.."names/"..uploader.upload_username.."-"..dataname
     uploader:upload{dataname=dataname,pathtofile=pathtofile,target=target}
 
     -- goodbye
@@ -796,9 +796,9 @@ function setup_sharing(script_name)
   params:set_action("share_download",function(y)
     -- prevent banging
     local x=y
-    params:set("share_download",download_dir) 
-    if #x<=#download_dir then 
-      do return end 
+    params:set("share_download",download_dir)
+    if #x<=#download_dir then
+      do return end
     end
 
     -- download
@@ -815,7 +815,7 @@ function setup_sharing(script_name)
     share.make_virtual_directory()
     params:set("share_message","directory updated.")
   end
-  }
+}
 params:add_text('share_message',">","")
 end
 
