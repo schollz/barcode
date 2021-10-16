@@ -1,4 +1,4 @@
--- barcode v0.11.0
+-- barcode v0.12.0
 -- six-speed six-voice looper
 --
 -- llllllll.co/t/barcode
@@ -13,7 +13,7 @@
 -- K3 starts recording
 -- any key stops recording
 -- shift+K2 switches buffer
--- shift+K3 clears
+-- shift+K3 undos, then clears
 -- E1 changes output/rec levels
 -- E2 dials through parameters
 -- E3 adjusts current parameter
@@ -36,6 +36,7 @@ state={
   buffer_size={60,60},
   has_recorded=0,
   message="",
+  undoed=true,
 }
 voice={}
 rates={0.125,0.25,0.5,1,2,4}
@@ -411,7 +412,25 @@ local function update_buffer()
   state.lfo_time=0
 end
 
+function undo()
+  if state.recording==0 then
+  softcut.buffer_copy_mono(state.buffer,state.buffer,62,0,60,0,0,0)
+  state.undoed=true
+   clock.run(function()
+      state.message=" undo last recording "                                                          
+      redraw()
+      clock.sleep(1)
+      state.message=""
+      redraw()
+    end)
+  end
+end
+
 function start_recording()
+  -- copy current buffer over so it can be reverted
+  state.undoed=false
+  softcut.buffer_copy_mono(state.buffer,state.buffer,0,62,60,0,0,0)
+
   state.recording=1
   -- change rate to 1 and slew to 0
   -- to avoid recording slew sound
@@ -467,7 +486,11 @@ function key(n,z)
     end)
   elseif state.shift==1 and n==3 and z==1 then
     -- shift+K3: clear current buffer
-    clear_recording()
+    if state.undoed then 
+       clear_recording()
+    else
+	undo()
+    end
   end
   redraw()
 end
